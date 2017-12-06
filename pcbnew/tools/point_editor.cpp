@@ -45,6 +45,8 @@ using namespace std::placeholders;
 #include <class_module.h>
 #include <connectivity_data.h>
 
+#include "zone_filler.h"
+
 // Point editor
 TOOL_ACTION PCB_ACTIONS::pointEditorAddCorner( "pcbnew.PointEditor.addCorner",
         AS_GLOBAL, 0,
@@ -215,7 +217,7 @@ private:
 
 
 POINT_EDITOR::POINT_EDITOR() :
-    TOOL_INTERACTIVE( "pcbnew.PointEditor" ), m_selectionTool( NULL ), m_editedPoint( NULL ),
+    PCB_TOOL( "pcbnew.PointEditor" ), m_selectionTool( NULL ), m_editedPoint( NULL ),
     m_original( VECTOR2I( 0, 0 ) ), m_altConstrainer( VECTOR2I( 0, 0 ) )
 {
 }
@@ -559,21 +561,20 @@ void POINT_EDITOR::updateItem() const
 }
 
 
-void POINT_EDITOR::finishItem() const
+void POINT_EDITOR::finishItem()
 {
-    EDA_ITEM* item = m_editPoints->GetParent();
-
+    auto item = m_editPoints->GetParent();
     if( !item )
         return;
 
     if( item->Type() == PCB_ZONE_AREA_T )
     {
-        ZONE_CONTAINER* zone = static_cast<ZONE_CONTAINER*>( item );
+        auto zone = static_cast<ZONE_CONTAINER*>( item );
 
         if( zone->IsFilled() )
         {
-            getEditFrame<PCB_EDIT_FRAME>()->Fill_Zone( zone );
-//            zone->GetBoard()->GetRatsnest()->Recalculate( zone->GetNetCode() );
+            ZONE_FILLER filler( board() );
+            filler.Fill( { zone } );
         }
     }
 }
@@ -783,19 +784,46 @@ bool POINT_EDITOR::addCornerCondition( const SELECTION& aSelection )
 }
 
 
+// Finds a corresponding vertex in a polygon set
+static std::pair<bool, SHAPE_POLY_SET::VERTEX_INDEX>
+findVertex( SHAPE_POLY_SET& aPolySet, const EDIT_POINT& aPoint )
+{
+    for( auto it = aPolySet.IterateWithHoles(); it; ++it )
+    {
+        auto vertexIdx = it.GetIndex();
+
+        if( aPolySet.Vertex( vertexIdx ) == aPoint.GetPosition() )
+            return std::make_pair( true, vertexIdx );
+    }
+
+    return std::make_pair( false, SHAPE_POLY_SET::VERTEX_INDEX() );
+}
+
+
 bool POINT_EDITOR::removeCornerCondition( const SELECTION& )
 {
-    if( !m_editPoints )
+    if( !m_editPoints || !m_editedPoint )
         return false;
 
     EDA_ITEM* item = m_editPoints->GetParent();
 
-    if( item->Type() != PCB_ZONE_AREA_T )
+    if( !item || item->Type() != PCB_ZONE_AREA_T )
         return false;
 
     ZONE_CONTAINER* zone = static_cast<ZONE_CONTAINER*>( item );
+    auto& polyset = *zone->Outline();
+    auto vertex = findVertex( polyset, *m_editedPoint );
 
-    if( zone->GetNumCorners() <= 3 )
+    if( !vertex.first )
+        return false;
+
+    const auto& vertexIdx = vertex.second;
+
+    // Check if there are enough vertices so one can be removed without
+    // degenerating the polygon.
+    // The first condition allows to remove all corners from holes (when there
+    // are only 2 vertices left, a hole is removed).
+    if( vertexIdx.m_contour == 0 && polyset.Polygon( vertexIdx.m_polygon )[vertexIdx.m_contour].PointCount() <= 3 )
         return false;
 
     // Remove corner does not work with lines
@@ -930,43 +958,59 @@ int POINT_EDITOR::removeCorner( const TOOL_EVENT& aEvent )
     if( !item )
         return 0;
 
-    SHAPE_POLY_SET *outline = nullptr;
+    SHAPE_POLY_SET* polygon = nullptr;
 
     if( item->Type() == PCB_ZONE_AREA_T)
     {
         auto zone = static_cast<ZONE_CONTAINER*>( item );
-        outline = zone->Outline();
+        polygon = zone->Outline();
     }
-    else if ( item->Type() == PCB_LINE_T )
+    else if( item->Type() == PCB_LINE_T )
     {
         auto ds = static_cast<DRAWSEGMENT*>( item );
+
         if( ds->GetShape() == S_POLYGON )
-        {
-            outline = &ds->GetPolyShape();
-        }
+            polygon = &ds->GetPolyShape();
     }
 
-    if( !outline )
+    if( !polygon )
         return 0;
 
     PCB_BASE_FRAME* frame = getEditFrame<PCB_BASE_FRAME>();
     BOARD_COMMIT commit( frame );
+    auto vertex = findVertex( *polygon, *m_editedPoint );
 
-    commit.Modify( item );
-
-    for( int i = 0; i < outline->TotalVertices(); ++i )
+    if( vertex.first )
     {
-        if( outline->Vertex( i ) == m_editedPoint->GetPosition() )
+        const auto& vertexIdx = vertex.second;
+        auto& outline = polygon->Polygon( vertexIdx.m_polygon )[vertexIdx.m_contour];
+
+        if( outline.PointCount() > 3 )
         {
-            outline->RemoveVertex( i );
-            setEditedPoint( NULL );
-            commit.Push( _( "Remove a zone/polygon corner" ) );
-            break;
+            // the usual case: remove just the corner when there are >3 vertices
+            commit.Modify( item );
+            polygon->RemoveVertex( vertexIdx );
         }
+        else
+        {
+            // either remove a hole or the polygon when there are <= 3 corners
+            if( vertexIdx.m_contour > 0 )
+            {
+                // remove hole
+                commit.Modify( item );
+                polygon->RemoveContour( vertexIdx.m_contour );
+            }
+            else
+            {
+                m_toolMgr->RunAction( PCB_ACTIONS::selectionClear, true );
+                commit.Remove( item );
+            }
+        }
+
+        setEditedPoint( nullptr );
+        commit.Push( _( "Remove a zone/polygon corner" ) );
+        updatePoints();
     }
-
-    updatePoints();
-
 
     return 0;
 }

@@ -280,13 +280,11 @@ set( PCBNEW_CLASS_SRCS
     tracepcb.cpp
     tr_modif.cpp
     undo_redo.cpp
-    zones_convert_brd_items_to_polygons_with_Boost.cpp
+    zone_filler.cpp
     zones_convert_to_polygons_aux_functions.cpp
     zones_by_polygon.cpp
     zones_by_polygon_fill_functions.cpp
-    zone_filling_algorithm.cpp
     zones_functions_for_undo_redo.cpp
-    zones_polygons_insulated_copper_islands.cpp
     zones_test_and_combine_areas.cpp
     class_footprint_wizard.cpp
     class_action_plugin.cpp
@@ -315,6 +313,7 @@ set( PCBNEW_CLASS_SRCS
     tools/tool_event_utils.cpp
     tools/size_menu.cpp
     tools/selection.cpp
+    tools/zone_filler_tool.cpp
 
     footprint_preview_panel.cpp
     )
