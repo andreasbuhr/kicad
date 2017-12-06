@@ -28,6 +28,7 @@
 #include <pcb_painter.h>
 #include <worksheet_viewitem.h>
 #include <ratsnest_viewitem.h>
+#include <si_mesh_viewitem.h>
 #include <ratsnest_data.h>
 #include <connectivity_data.h>
 
@@ -53,7 +54,7 @@ const LAYER_NUM GAL_LAYER_ORDER[] =
     LAYER_MOD_TEXT_FR,
     LAYER_MOD_REFERENCES, LAYER_MOD_VALUES,
 
-    LAYER_RATSNEST, LAYER_ANCHOR,
+    LAYER_RATSNEST, LAYER_SI_MESH, LAYER_ANCHOR,
     LAYER_VIAS_HOLES, LAYER_PADS_PLATEDHOLES, LAYER_NON_PLATEDHOLES,
     LAYER_VIA_THROUGH, LAYER_VIA_BBLIND,
     LAYER_VIA_MICROVIA, LAYER_PADS_TH,
@@ -169,6 +170,10 @@ void PCB_DRAW_PANEL_GAL::DisplayBoard( const BOARD* aBoard )
     // Ratsnest
     m_ratsnest.reset( new KIGFX::RATSNEST_VIEWITEM( aBoard->GetConnectivity() ) );
     m_view->Add( m_ratsnest.get() );
+
+    // SI mesh
+    m_si_mesh.reset( new KIGFX::SI_MESH_VIEWITEM() );
+    m_view->Add( m_si_mesh.get() );
 }
 
 
@@ -207,7 +212,7 @@ void PCB_DRAW_PANEL_GAL::SetHighContrastLayer( PCB_LAYER_ID aLayer )
                 GetNetnameLayer( aLayer ),
                 LAYER_VIA_THROUGH, LAYER_VIAS_HOLES, LAYER_VIAS_NETNAMES,
                 LAYER_PADS_TH, LAYER_PADS_PLATEDHOLES, LAYER_PADS_NETNAMES,
-                LAYER_NON_PLATEDHOLES, LAYER_GP_OVERLAY, LAYER_RATSNEST
+                LAYER_NON_PLATEDHOLES, LAYER_GP_OVERLAY, LAYER_RATSNEST, LAYER_SI_MESH
         };
 
         for( unsigned int i = 0; i < sizeof( layers ) / sizeof( LAYER_NUM ); ++i )
@@ -242,7 +247,7 @@ void PCB_DRAW_PANEL_GAL::SetTopLayer( PCB_LAYER_ID aLayer )
     const LAYER_NUM layers[] = {
             LAYER_VIA_THROUGH, LAYER_VIAS_HOLES, LAYER_VIAS_NETNAMES,
             LAYER_PADS_TH, LAYER_PADS_PLATEDHOLES, LAYER_PADS_NETNAMES,
-            LAYER_NON_PLATEDHOLES, LAYER_GP_OVERLAY, LAYER_RATSNEST,
+            LAYER_NON_PLATEDHOLES, LAYER_GP_OVERLAY, LAYER_RATSNEST, LAYER_SI_MESH,
             LAYER_DRC
     };
 
@@ -448,6 +453,8 @@ void PCB_DRAW_PANEL_GAL::setDefaultLayerDeps()
     m_view->SetLayerDisplayOnly( LAYER_GP_OVERLAY ) ;
     m_view->SetLayerTarget( LAYER_RATSNEST, KIGFX::TARGET_OVERLAY );
     m_view->SetLayerDisplayOnly( LAYER_RATSNEST );
+    m_view->SetLayerTarget( LAYER_SI_MESH, KIGFX::TARGET_OVERLAY );
+    m_view->SetLayerDisplayOnly( LAYER_SI_MESH );
 
     m_view->SetLayerDisplayOnly( LAYER_WORKSHEET ) ;
     m_view->SetLayerDisplayOnly( LAYER_GRID );

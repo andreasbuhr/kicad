@@ -397,6 +397,7 @@ set( PCB_COMMON_SRCS
     ../pcbnew/convert_drawsegment_list_to_polygon.cpp
     ../pcbnew/ratsnest_data.cpp
     ../pcbnew/ratsnest_viewitem.cpp
+    ../pcbnew/si_mesh_viewitem.cpp
     ../pcbnew/pcb_general_settings.cpp
     ../pcbnew/collectors.cpp
     ../pcbnew/netlist_reader.cpp

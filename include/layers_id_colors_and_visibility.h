@@ -202,6 +202,7 @@ enum GAL_LAYER_ID: int
     GAL_LAYER_ID_BITMASK_END,
 
     /// Add new GAL layers here
+    LAYER_SI_MESH,
 
     GAL_LAYER_ID_END
 };

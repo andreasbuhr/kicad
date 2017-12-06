@@ -32,6 +32,7 @@ namespace KIGFX
 {
     class WORKSHEET_VIEWITEM;
     class RATSNEST_VIEWITEM;
+    class SI_MESH_VIEWITEM;
     class PCB_VIEW;
 }
 class COLORS_DESIGN_SETTINGS;
@@ -118,6 +119,9 @@ protected:
 
     ///> Ratsnest view item
     std::unique_ptr<KIGFX::RATSNEST_VIEWITEM> m_ratsnest;
+
+    ///> SI_mesh view item
+    std::unique_ptr<KIGFX::SI_MESH_VIEWITEM> m_si_mesh;
 };
 
 #endif /* PCB_DRAW_PANEL_GAL_H_ */
