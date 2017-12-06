@@ -175,7 +175,7 @@ void PCB_DRAW_PANEL_GAL::DisplayBoard( BOARD* aBoard )
     m_view->Add( m_ratsnest.get() );
 
     // SI mesh
-    m_si_mesh.reset( new KIGFX::SI_MESH_VIEWITEM() );
+    m_si_mesh.reset( new KIGFX::SI_MESH_VIEWITEM(aBoard->GetSiSimulation()) );
     m_view->Add( m_si_mesh.get() );
 }
 

@@ -400,6 +400,7 @@ set( PCB_COMMON_SRCS
     ../pcbnew/ratsnest_data.cpp
     ../pcbnew/ratsnest_viewitem.cpp
     ../pcbnew/si_mesh_viewitem.cpp
+    ../pcbnew/si_simulation.cpp
     ../pcbnew/pcb_general_settings.cpp
     ../pcbnew/collectors.cpp
     ../pcbnew/netlist_reader.cpp

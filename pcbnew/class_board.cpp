@@ -59,6 +59,7 @@
 #include <class_pcb_target.h>
 #include <class_dimension.h>
 #include <connectivity_data.h>
+#include <si_simulation.h>
 
 
 /* This is an odd place for this, but CvPcb won't link if it is
@@ -110,6 +111,8 @@ BOARD::BOARD() :
 
     // Initialize ratsnest
     m_connectivity.reset( new CONNECTIVITY_DATA() );
+
+    m_siSimulation = std::make_shared<SI_SIMULATION>(this);
 }
 
 

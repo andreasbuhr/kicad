@@ -30,14 +30,18 @@
 #ifndef SI_MESH_VIEWITEM_H
 #define SI_MESH_VIEWITEM_H
 
+#include <memory>
+
 #include <base_struct.h>
+
+class SI_SIMULATION;
 
 namespace KIGFX
 {
 class SI_MESH_VIEWITEM : public EDA_ITEM
 {
 public:
-    SI_MESH_VIEWITEM( );
+    SI_MESH_VIEWITEM( std::shared_ptr<SI_SIMULATION> asiSimulation );
 
     /// @copydoc VIEW_ITEM::ViewBBox()
     const BOX2I ViewBBox() const override;
@@ -62,7 +66,10 @@ public:
     {
         return wxT( "SI_MESH_VIEWITEM" );
     }
+private:
+    std::shared_ptr<SI_SIMULATION> m_siSimulation;
 };
+
 
 }   // namespace KIGFX
 

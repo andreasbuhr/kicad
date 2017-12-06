@@ -275,6 +275,9 @@ void PCB_EDIT_FRAME::ReCreateHToolbar()
     m_mainToolBar->AddTool( ID_DRC_CONTROL, wxEmptyString, KiBitmap( erc_xpm ),
                             _( "Perform design rules check" ) );
 
+    m_mainToolBar->AddTool( ID_SI_SIMULATION, wxEmptyString, KiBitmap( si_simulation_xpm ),
+                            _( "Perform SI simulation" ) );
+
     m_mainToolBar->AddSeparator();
 
     if( m_SelLayerBox == NULL )

@@ -481,6 +481,7 @@ set( BMAPS_MID
     select_same_sheet
     shape_3d
     sheetset
+    si_simulation
     simulator
     sim_run
     sim_stop

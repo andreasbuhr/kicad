@@ -31,6 +31,7 @@
 #include <gal/graphics_abstraction_layer.h>
 #include <layers_id_colors_and_visibility.h>
 #include <pcb_painter.h>
+#include <si_simulation.h>
 
 #include <memory>
 
@@ -38,8 +39,9 @@
 
 namespace KIGFX {
 
-SI_MESH_VIEWITEM::SI_MESH_VIEWITEM( ) :
-        EDA_ITEM( NOT_USED )
+SI_MESH_VIEWITEM::SI_MESH_VIEWITEM(std::shared_ptr<SI_SIMULATION> asiSimulation ) :
+        EDA_ITEM( NOT_USED ),
+        m_siSimulation(asiSimulation)
 {
 }
 

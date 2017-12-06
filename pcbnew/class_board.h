@@ -63,6 +63,7 @@ class NETLIST;
 class REPORTER;
 class SHAPE_POLY_SET;
 class CONNECTIVITY_DATA;
+class SI_SIMULATION;
 
 /**
  * Enum LAYER_T
@@ -189,6 +190,7 @@ private:
     int                     m_fileFormatVersionAtLoad;  ///< the version loaded from the file
 
     std::shared_ptr<CONNECTIVITY_DATA>      m_connectivity;
+    std::shared_ptr<SI_SIMULATION>          m_siSimulation;
 
     BOARD_DESIGN_SETTINGS   m_designSettings;
     ZONE_SETTINGS           m_zoneSettings;
@@ -290,6 +292,15 @@ public:
     std::shared_ptr<CONNECTIVITY_DATA> GetConnectivity() const
     {
         return m_connectivity;
+    }
+
+    /**
+     * Function GetSiSimulation()
+     * @return an object that contains SI related stuff
+     */
+    std::shared_ptr<SI_SIMULATION> GetSiSimulation() const
+    {
+        return m_siSimulation;
     }
 
     /**

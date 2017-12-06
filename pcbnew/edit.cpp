@@ -55,6 +55,7 @@
 #include <invoke_pcb_dialog.h>
 #include <array_creator.h>
 #include <connectivity_data.h>
+#include <si_simulation.h>
 
 #include <zone_filler.h>
 
@@ -300,6 +301,11 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         // Shows the DRC dialog in non modal mode, to allows board edition
         // with the DRC dialog opened and showing errors.
         m_drc->ShowDRCDialog();
+        break;
+
+    case ID_SI_SIMULATION:
+        // starts SI simulation
+        m_Pcb->m_siSimulation->BuildMesh();
         break;
 
     case ID_GET_NETLIST:

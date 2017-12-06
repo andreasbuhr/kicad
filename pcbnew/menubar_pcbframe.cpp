@@ -392,6 +392,10 @@ void prepareToolsMenu( wxMenu* aParentMenu )
                  _( "&Design Rules Check" ),
                  _( "Perform design rules check" ), KiBitmap( erc_xpm ) );
 
+    AddMenuItem( aParentMenu, ID_SI_SIMULATION,
+                 _( "&SI Simulation" ),
+                 _( "Performs an SI simulation" ), KiBitmap( si_simulation_xpm ) );
+
     AddMenuItem( aParentMenu, ID_TOOLBARH_PCB_FREEROUTE_ACCESS,
                  _( "&FreeRoute" ),
                  _( "Fast access to the FreeROUTE external advanced router" ),
