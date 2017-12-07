@@ -57,14 +57,6 @@ SHAPE_POLY_SET::SHAPE_POLY_SET( const SHAPE_POLY_SET& aOther ) :
 {
 }
 
-
-SHAPE_POLY_SET::~SHAPE_POLY_SET()
-{
-    for( auto p : m_triangulatedPolys )
-        delete p;
-}
-
-
 SHAPE* SHAPE_POLY_SET::Clone() const
 {
     return new SHAPE_POLY_SET( *this );
@@ -1870,6 +1862,19 @@ SHAPE_POLY_SET::POLYGON SHAPE_POLY_SET::chamferFilletPolygon( CORNER_MODE aMode,
 }
 
 
+SHAPE_POLY_SET &SHAPE_POLY_SET::operator=(const SHAPE_POLY_SET & aOther)
+{
+    static_cast<SHAPE&>(*this) = aOther;
+    m_polys = aOther.m_polys;
+
+    // reset poly cache:
+    m_hash = MD5_HASH{};
+    m_triangulationValid = false;
+    m_triangulatedPolys.clear();
+    return *this;
+}
+
+
 typedef std::map<p2t::Point*, int>  P2T_MAP;
 typedef std::vector<p2t::Point*>    P2T_VEC;
 
@@ -2017,13 +2022,13 @@ void SHAPE_POLY_SET::CacheTriangulation()
     SHAPE_POLY_SET tmpSet = *this;
     tmpSet.Unfracture( PM_FAST );
 
+    // this was a memory leak?
     m_triangulatedPolys.clear();
 
     for( int i = 0; i < tmpSet.OutlineCount(); i++ )
     {
-        auto p = new TRIANGULATED_POLYGON();
-        m_triangulatedPolys.push_back( p );
-        triangulateSingle( tmpSet.Polygon( i ), *p );
+        m_triangulatedPolys.push_back( std::make_unique<TRIANGULATED_POLYGON>() );
+        triangulateSingle( tmpSet.Polygon( i ), *m_triangulatedPolys.back() );
     }
 
     m_triangulationValid = true;

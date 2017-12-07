@@ -29,8 +29,11 @@
 #include <si_mesh_viewitem.h>
 #include <class_eda_rect.h>
 
+#include <geometry/shape_poly_set.h>
+
 class BOARD;
 class DIALOG_SI_CONTROL;
+class BOARD_CONNECTED_ITEM;
 
 // a class holding everything related to SI simulation
 class SI_SIMULATION
@@ -55,8 +58,12 @@ public:
     double getLinesPerWavelength() const;
     void setLinesPerWavelength(double linesPerWavelength);
 
+    int getMin_number_of_domains() const;
+    void setMin_number_of_domains(int min_number_of_domains);
+
 private:
     BOARD *m_board;
+    int m_min_number_of_domains;
     double m_maxFreq;
     double m_domainSize;
     double m_linesPerWavelength;
@@ -64,6 +71,16 @@ private:
     EDA_RECT m_bbox;
     std::vector<double> m_domain_boundaries_x;
     std::vector<double> m_domain_boundaries_y;
+
+    void addItemToPolygons(const BOARD_CONNECTED_ITEM* item);
+
+    int m_numDomains;
+    // for intersection checks:
+    std::vector<EDA_RECT> m_domain_boxes;
+    // for boolean intersection
+    std::vector<SHAPE_POLY_SET> m_domain_polys;
+    // the resulting polygons on each layer
+    std::vector<std::map<PCB_LAYER_ID,SHAPE_POLY_SET>> m_polygons;
 };
 
 #endif // SI_SIMULATION_H

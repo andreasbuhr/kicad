@@ -41,6 +41,8 @@ class DIALOG_SI_CONTROL_BASE : public DIALOG_SHIM
 		wxStaticText* m_ViaMinUnit;
 		wxStaticText* m_MicroViaMinTitle;
 		wxStaticText* m_MicroViaMinUnit;
+		wxStaticText* m_MicroViaMinTitle1;
+		wxStaticText* m_MicroViaMinUnit1;
 		wxStdDialogButtonSizer* m_sdbSizer1;
 		wxButton* m_sdbSizer1OK;
 		wxButton* m_sdbSizer1Cancel;
@@ -55,6 +57,7 @@ class DIALOG_SI_CONTROL_BASE : public DIALOG_SHIM
 		wxTextCtrl* m_MaxFrequencyCtrl;
 		wxTextCtrl* m_DomainSizeCtrl;
 		wxTextCtrl* m_LinesPerWavelengthCtrl;
+		wxTextCtrl* m_NumberOfDomainsCtrl;
 		
 		DIALOG_SI_CONTROL_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("SI Control"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 679,211 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
 		~DIALOG_SI_CONTROL_BASE();

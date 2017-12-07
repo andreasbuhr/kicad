@@ -88,6 +88,21 @@ DIALOG_SI_CONTROL_BASE::DIALOG_SI_CONTROL_BASE( wxWindow* parent, wxWindowID id,
 	
 	fgMinValuesSizer->Add( m_MicroViaMinUnit, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5 );
 	
+	m_MicroViaMinTitle1 = new wxStaticText( this, wxID_ANY, _("Minimum number of domains"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_MicroViaMinTitle1->Wrap( -1 );
+	m_MicroViaMinTitle1->SetToolTip( _("Enter the minimum acceptable diameter for a micro via") );
+	
+	fgMinValuesSizer->Add( m_MicroViaMinTitle1, 0, wxALIGN_CENTER_VERTICAL|wxALIGN_RIGHT|wxLEFT, 5 );
+	
+	m_NumberOfDomainsCtrl = new wxTextCtrl( this, wxID_ANY, _("100"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgMinValuesSizer->Add( m_NumberOfDomainsCtrl, 0, wxALL|wxEXPAND, 5 );
+	
+	m_MicroViaMinUnit1 = new wxStaticText( this, wxID_ANY, _("unit"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_MicroViaMinUnit1->Wrap( -1 );
+	m_MicroViaMinUnit1->SetToolTip( _("Enter the minimum acceptable diameter for a micro via") );
+	
+	fgMinValuesSizer->Add( m_MicroViaMinUnit1, 0, wxALIGN_CENTER_VERTICAL, 5 );
+	
 	
 	bSizerOptSettings->Add( fgMinValuesSizer, 0, wxEXPAND, 5 );
 	

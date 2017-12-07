@@ -61,6 +61,12 @@ void PCB_EDIT_FRAME::ShowSIDialog( )
         ss << si_simulation->getLinesPerWavelength();
         dlg.m_LinesPerWavelengthCtrl->SetValue(ss.str());
     }
+    {
+        std::ostringstream ss;
+        ss << std::setprecision(5);
+        ss << si_simulation->getMin_number_of_domains();
+        dlg.m_NumberOfDomainsCtrl->SetValue(ss.str());
+    }
 
     if( dlg.ShowModal() == wxID_CANCEL)
         return;
@@ -70,6 +76,7 @@ void PCB_EDIT_FRAME::ShowSIDialog( )
         si_simulation->setMaxFreq(boost::lexical_cast<double>(dlg.m_MaxFrequencyCtrl->GetValue().ToStdString()));
         si_simulation->setDomainSize(boost::lexical_cast<double>(dlg.m_DomainSizeCtrl->GetValue().ToStdString()));
         si_simulation->setLinesPerWavelength(boost::lexical_cast<double>(dlg.m_LinesPerWavelengthCtrl->GetValue().ToStdString()));
+        si_simulation->setMin_number_of_domains(boost::lexical_cast<int>(dlg.m_NumberOfDomainsCtrl->GetValue().ToStdString()));
         si_simulation->BuildMesh();
     }
     catch(boost::bad_lexical_cast &){

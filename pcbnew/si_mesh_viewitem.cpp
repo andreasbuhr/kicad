@@ -67,6 +67,7 @@ void SI_MESH_VIEWITEM::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
     // draw DD
     if(sim->m_domain_boundaries_x.size() >= 2 && sim->m_domain_boundaries_y.size() >= 2){
         gal->SetStrokeColor(COLOR4D(LIGHTBLUE));
+        gal->SetLineWidth( 200000.0 );
 
         double x_min = sim->m_domain_boundaries_x.front();
         double x_max = sim->m_domain_boundaries_x.back();
@@ -80,6 +81,12 @@ void SI_MESH_VIEWITEM::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
             gal->DrawLine(VECTOR2D(x_min, y_val), VECTOR2D(x_max, y_val));
         }
     }
+
+    gal->SetStrokeColor(COLOR4D(LIGHTGREEN));
+    gal->SetLineWidth( 10000.0 );
+    for(auto& map : sim->m_polygons)
+        for(auto& poly : map)
+            gal->DrawPolygon(poly.second);
 }
 
 
