@@ -304,8 +304,8 @@ void PCB_EDIT_FRAME::Process_Special_Functions( wxCommandEvent& event )
         break;
 
     case ID_SI_SIMULATION:
-        // starts SI simulation
-        m_Pcb->m_siSimulation->BuildMesh();
+        // shows SI dialog
+        ShowSIDialog();
         break;
 
     case ID_GET_NETLIST:

@@ -1523,6 +1523,7 @@ public:
     void PlaceDimensionText( DIMENSION* aItem, wxDC* DC );
 
 
+    void ShowSIDialog();
     // netlist  handling:
     void InstallNetlistFrame( wxDC* DC );
 

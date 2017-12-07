@@ -65,6 +65,8 @@ set( PCBNEW_DIALOGS
     dialogs/dialog_display_options_base.cpp
     dialogs/dialog_drc_base.cpp
     dialogs/dialog_drc.cpp
+    dialogs/dialog_si_base.cpp
+    dialogs/dialog_si.cpp
     dialogs/dialog_edit_module_for_BoardEditor.cpp
     dialogs/dialog_edit_module_for_BoardEditor_base.cpp
     dialogs/dialog_edit_module_for_Modedit_base.cpp
