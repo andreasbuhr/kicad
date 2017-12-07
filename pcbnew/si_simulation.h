@@ -26,6 +26,8 @@
 #define SI_SIMULATION_H
 
 #include <dialogs/dialog_si.h>
+#include <si_mesh_viewitem.h>
+#include <class_eda_rect.h>
 
 class BOARD;
 class DIALOG_SI_CONTROL;
@@ -33,6 +35,7 @@ class DIALOG_SI_CONTROL;
 // a class holding everything related to SI simulation
 class SI_SIMULATION
 {
+    friend class KIGFX::SI_MESH_VIEWITEM;
 public:
     SI_SIMULATION( BOARD* aBoard );
     ~SI_SIMULATION();
@@ -57,6 +60,10 @@ private:
     double m_maxFreq;
     double m_domainSize;
     double m_linesPerWavelength;
+
+    EDA_RECT m_bbox;
+    std::vector<double> m_domain_boundaries_x;
+    std::vector<double> m_domain_boundaries_y;
 };
 
 #endif // SI_SIMULATION_H

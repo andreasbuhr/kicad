@@ -48,30 +48,38 @@ SI_MESH_VIEWITEM::SI_MESH_VIEWITEM(std::shared_ptr<SI_SIMULATION> asiSimulation 
 
 const BOX2I SI_MESH_VIEWITEM::ViewBBox() const
 {
-    // Make it always visible
-    BOX2I bbox;
-    bbox.SetMaximum();
-
-    return bbox;
+    return m_siSimulation->m_bbox;
 }
 
 void SI_MESH_VIEWITEM::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
 {
-    // just draw a cross, to test
-    constexpr int CROSS_SIZE = 500000;
 
     auto gal = aView->GetGAL();
-	gal->SetIsStroke( true );
+    gal->SetIsStroke( true );
+    gal->SetStrokeColor(COLOR4D(WHITE));
     gal->SetIsFill( false );
-    gal->SetLineWidth( 1.0 );
-    auto rs = aView->GetPainter()->GetSettings();
-    auto color = rs->GetColor( NULL, LAYER_RATSNEST );
+    gal->SetLineWidth( 500000.0 );
+    auto& sim(m_siSimulation);
 
+    // draw bounding box
+    gal->DrawRectangle(sim->m_bbox.GetOrigin(), sim->m_bbox.GetEnd());
 
-    gal->SetStrokeColor( color.Brightened(0.8) );
+    // draw DD
+    if(sim->m_domain_boundaries_x.size() >= 2 && sim->m_domain_boundaries_y.size() >= 2){
+        gal->SetStrokeColor(COLOR4D(LIGHTBLUE));
 
-    gal->DrawLine( VECTOR2I( 0 - CROSS_SIZE, 0 - CROSS_SIZE ), VECTOR2I( 0 + CROSS_SIZE, 0 + CROSS_SIZE ) );
-    gal->DrawLine( VECTOR2I( 0 - CROSS_SIZE, 0 + CROSS_SIZE ), VECTOR2I( 0 + CROSS_SIZE, 0 - CROSS_SIZE ) );
+        double x_min = sim->m_domain_boundaries_x.front();
+        double x_max = sim->m_domain_boundaries_x.back();
+        double y_min = sim->m_domain_boundaries_y.front();
+        double y_max = sim->m_domain_boundaries_y.back();
+
+        for(double x_val : sim->m_domain_boundaries_x){
+            gal->DrawLine(VECTOR2D(x_val, y_min), VECTOR2D(x_val, y_max));
+        }
+        for(double y_val : sim->m_domain_boundaries_y){
+            gal->DrawLine(VECTOR2D(x_min, y_val), VECTOR2D(x_max, y_val));
+        }
+    }
 }
 
 

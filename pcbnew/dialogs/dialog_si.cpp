@@ -32,6 +32,7 @@
 #include <boost/lexical_cast.hpp>
 #include <sstream>
 #include <iomanip>
+#include <cstdlib>
 
 void PCB_EDIT_FRAME::ShowSIDialog( )
 {
@@ -69,9 +70,10 @@ void PCB_EDIT_FRAME::ShowSIDialog( )
         si_simulation->setMaxFreq(boost::lexical_cast<double>(dlg.m_MaxFrequencyCtrl->GetValue().ToStdString()));
         si_simulation->setDomainSize(boost::lexical_cast<double>(dlg.m_DomainSizeCtrl->GetValue().ToStdString()));
         si_simulation->setLinesPerWavelength(boost::lexical_cast<double>(dlg.m_LinesPerWavelengthCtrl->GetValue().ToStdString()));
+        si_simulation->BuildMesh();
     }
     catch(boost::bad_lexical_cast &){
-        // error
+        std::abort();
     }
 }
 

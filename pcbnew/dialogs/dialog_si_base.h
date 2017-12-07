@@ -35,7 +35,6 @@ class DIALOG_SI_CONTROL_BASE : public DIALOG_SHIM
 	
 	protected:
 		wxStaticText* m_staticTextOptions;
-		wxStaticText* m_ClearanceTitle;
 		wxStaticText* m_maxFrequency;
 		wxStaticText* m_MaximumFrequencyUnit;
 		wxStaticText* m_ViaMinTitle;
@@ -53,12 +52,11 @@ class DIALOG_SI_CONTROL_BASE : public DIALOG_SHIM
 		
 	
 	public:
-		wxTextCtrl* m_SetClearance;
 		wxTextCtrl* m_MaxFrequencyCtrl;
 		wxTextCtrl* m_DomainSizeCtrl;
 		wxTextCtrl* m_LinesPerWavelengthCtrl;
 		
-		DIALOG_SI_CONTROL_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("SI Control"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 679,236 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
+		DIALOG_SI_CONTROL_BASE( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("SI Control"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 679,211 ), long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER ); 
 		~DIALOG_SI_CONTROL_BASE();
 	
 };

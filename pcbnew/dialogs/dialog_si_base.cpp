@@ -43,18 +43,6 @@ DIALOG_SI_CONTROL_BASE::DIALOG_SI_CONTROL_BASE( wxWindow* parent, wxWindowID id,
 	fgMinValuesSizer->SetFlexibleDirection( wxHORIZONTAL );
 	fgMinValuesSizer->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 	
-	m_ClearanceTitle = new wxStaticText( this, wxID_ANY, _("Clearance"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_ClearanceTitle->Wrap( -1 );
-	fgMinValuesSizer->Add( m_ClearanceTitle, 0, wxALIGN_CENTER_VERTICAL|wxALIGN_RIGHT|wxLEFT, 5 );
-	
-	m_SetClearance = new wxTextCtrl( this, wxID_ANY, _("By Netclass"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_SetClearance->Enable( false );
-	
-	fgMinValuesSizer->Add( m_SetClearance, 0, wxEXPAND|wxALL, 5 );
-	
-	
-	fgMinValuesSizer->Add( 0, 0, 0, 0, 5 );
-	
 	m_maxFrequency = new wxStaticText( this, wxID_ANY, _("Maximum frequency"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_maxFrequency->Wrap( -1 );
 	m_maxFrequency->SetToolTip( _("Enter the minimum acceptable value for a track width") );
