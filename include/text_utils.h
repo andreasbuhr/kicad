@@ -1,8 +1,8 @@
 /*
- * This program source code file is part of KiCad, a free EDA CAD application.
+ * This program source code file is part of KICAD, a free EDA CAD application.
  *
  * Copyright (C) 2017 CERN
- * @author Alejandro García Montoro <alejandro.garciamontoro@gmail.com>
+ * @author Maciej Suminski <maciej.suminski@cern.ch>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,10 +22,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#ifndef TEXT_UTILS_H
+#define TEXT_UTILS_H
+
+#include <utf8.h>
+#include <vector>
+
 /**
- * Main file for the schematic eagle plugin tests to be compiled
+ * Processes a text to extract the raw text and overbar flags.
+ * @param aText is the text to be processed.
+ * @return Pair of raw text and overbar enable flags for each character in the raw text.
  */
+std::pair<UTF8, std::vector<bool>> ProcessOverbars( const UTF8& aText );
 
-#define BOOST_TEST_MODULE "Schematic Eagle plugin"
-
-#include <boost/test/unit_test.hpp>
+#endif /* TEXT_UTILS_H */

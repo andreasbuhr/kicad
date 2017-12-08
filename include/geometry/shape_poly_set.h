@@ -1119,7 +1119,7 @@ class SHAPE_POLY_SET : public SHAPE
 
     public:
 
-        SHAPE_POLY_SET& operator=(const SHAPE_POLY_SET&);
+        SHAPE_POLY_SET& operator=( const SHAPE_POLY_SET& );
 
         void CacheTriangulation();
         bool IsTriangulationUpToDate() const;

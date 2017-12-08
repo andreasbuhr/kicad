@@ -38,6 +38,7 @@
 #include <wx/confbase.h>
 #include <wx/fileconf.h>
 
+#include <base_struct.h>    // For timestamp_t definition
 #include <richio.h>
 #include <gal/color4d.h>
 
@@ -218,14 +219,10 @@ int ProcessExecute( const wxString& aCommandLine, int aFlags = wxEXEC_ASYNC,
                     wxProcess *callback = NULL );
 
 
-/**************/
-/* common.cpp */
-/**************/
-
 /**
  * @return an unique time stamp that changes after each call
  */
-time_t GetNewTimeStamp();
+timestamp_t GetNewTimeStamp();
 
 int GetCommandOptions( const int argc, const char** argv,
                        const char* stringtst, const char** optarg,

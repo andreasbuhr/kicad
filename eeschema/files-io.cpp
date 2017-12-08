@@ -293,6 +293,15 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
             g_RootSheet = pi->Load( fullFileName, &Kiway() );
             m_CurrentSheet->clear();
             m_CurrentSheet->push_back( g_RootSheet );
+
+            if( !pi->GetError().IsEmpty() )
+            {
+                DisplayErrorMessage( this,
+                                     _( "The entire schematic could not be load.  Errors "
+                                        "occurred attempting to load hierarchical sheet "
+                                        "schematics." ),
+                                     pi->GetError() );
+            }
         }
         catch( const IO_ERROR& ioe )
         {
@@ -434,6 +443,15 @@ bool SCH_EDIT_FRAME::AppendSchematic()
     try
     {
         pi->Load( fullFileName, &Kiway(), newSheet.get() );
+
+        if( !pi->GetError().IsEmpty() )
+        {
+            DisplayErrorMessage( this,
+                                 _( "The entire schematic could not be load.  Errors "
+                                    "occurred attempting to load hierarchical sheet "
+                                    "schematics." ),
+                                 pi->GetError() );
+        }
     }
     catch( const IO_ERROR& ioe )
     {
@@ -595,9 +613,9 @@ bool SCH_EDIT_FRAME::AppendSchematic()
         wxCHECK2_MSG( renamedSheet, continue,
                       "Sheet " + duplicateName + " not found in imported schematic." );
 
-        time_t newtimestamp = GetNewTimeStamp();
+        timestamp_t newtimestamp = GetNewTimeStamp();
         renamedSheet->SetTimeStamp( newtimestamp );
-        renamedSheet->SetName( wxString::Format( "Sheet%8.8lX", (long) newtimestamp ) );
+        renamedSheet->SetName( wxString::Format( "Sheet%8.8lX", (unsigned long) newtimestamp ) );
     }
 
     // Clear all annotation in the imported schematic to prevent clashes with existing annotation.

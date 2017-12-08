@@ -158,6 +158,19 @@ typedef const INSPECTOR_FUNC& INSPECTOR;    /// std::function passed to nested u
 typedef unsigned STATUS_FLAGS;
 
 /**
+ * timestamp_t is our type to represent unique IDs for all kinds of elements;
+ * historically simply the timestamp when they were created.
+ *
+ * Long term, this type might be renamed to something like unique_id_t
+ * (and then rename all the methods from {Get,Set}TimeStamp()
+ * to {Get,Set}Id()) ?
+ *
+ * The type should be at least 32 bit and simple to map via swig; swig does
+ * have issues with types such as 'int32_t', so we choose 'long'.
+ */
+typedef long timestamp_t;
+
+/**
  * Class EDA_ITEM
  * is a base class for most all the KiCad significant classes, used in
  * schematics and boards.
@@ -180,7 +193,7 @@ protected:
     DHEAD*        m_List;         ///< which DLIST I am on.
 
     EDA_ITEM*     m_Parent;       ///< Linked list: Link (parent struct)
-    time_t        m_TimeStamp;    ///< Time stamp used for logical links
+    timestamp_t   m_TimeStamp;    ///< Time stamp used for logical links
 
     /// Set to true to override the visibility setting of the item.
     bool          m_forceVisible;
@@ -214,8 +227,8 @@ public:
         return m_StructType;
     }
 
-    void SetTimeStamp( time_t aNewTimeStamp ) { m_TimeStamp = aNewTimeStamp; }
-    time_t GetTimeStamp() const { return m_TimeStamp; }
+    void SetTimeStamp( timestamp_t aNewTimeStamp ) { m_TimeStamp = aNewTimeStamp; }
+    timestamp_t GetTimeStamp() const { return m_TimeStamp; }
 
     EDA_ITEM* Next() const { return Pnext; }
     EDA_ITEM* Back() const { return Pback; }
