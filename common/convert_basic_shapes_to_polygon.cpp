@@ -155,53 +155,75 @@ void TransformRoundedEndsSegmentToPolygon( SHAPE_POLY_SET& aCornerBuffer,
                                            int aWidth )
 {
     int     radius  = aWidth / 2;
-    wxPoint endp    = aEnd - aStart; // end point coordinate for the same segment starting at (0,0)
+    wxPoint direction    = aEnd - aStart; // end point coordinate for the same segment starting at (0,0)
     wxPoint startp  = aStart;
+    wxPoint endp = aEnd;
     wxPoint corner;
     VECTOR2I polypoint;
 
     aCornerBuffer.NewOutline();
 
     // normalize the position in order to have endp.x >= 0;
-    if( endp.x < 0 )
+    if( direction.x < 0 )
     {
-        endp    = aStart - aEnd;
+        direction    = aStart - aEnd;
         startp  = aEnd;
+        endp = aStart;
     }
 
-    double delta_angle = ArcTangente( endp.y, endp.x ); // delta_angle is in 0.1 degrees
-    int seg_len        = KiROUND( EuclideanNorm( endp ) );
+    double delta_angle = ArcTangente( direction.y, direction.x ); // delta_angle is in 0.1 degrees
 
     int delta = 3600 / aCircleToSegmentsCount;    // rot angle in 0.1 degree
 
     // Compute the outlines of the segment, and creates a polygon
     // add right rounded end:
-    for( int ii = 0; ii < 1800; ii += delta )
+
+    // Start arc:
+    corner = wxPoint( 0, radius );
+    RotatePoint( &corner, -delta_angle );
+    corner += endp;
+    polypoint.x = corner.x;
+    polypoint.y = corner.y;
+    aCornerBuffer.Append( polypoint.x, polypoint.y );
+
+    int ii = int(delta_angle) % delta;
+    if(ii <= 0) ii += delta;
+    for( ; ii < 1800; ii += delta )
     {
+        assert((ii-int(delta_angle)) % delta == 0);
         corner = wxPoint( 0, radius );
-        RotatePoint( &corner, ii );
-        corner.x += seg_len;
-        RotatePoint( &corner, -delta_angle );
-        corner += startp;
+        RotatePoint( &corner, ii - int(delta_angle));
+        corner += endp;
         polypoint.x = corner.x;
         polypoint.y = corner.y;
         aCornerBuffer.Append( polypoint.x, polypoint.y );
     }
 
     // Finish arc:
-    corner = wxPoint( seg_len, -radius );
+    corner = wxPoint( 0, -radius );
+    RotatePoint( &corner, -delta_angle );
+    corner += endp;
+    polypoint.x = corner.x;
+    polypoint.y = corner.y;
+    aCornerBuffer.Append( polypoint.x, polypoint.y );
+
+    // add left rounded end:
+
+    // start arc:
+    corner = wxPoint( 0, -radius );
     RotatePoint( &corner, -delta_angle );
     corner += startp;
     polypoint.x = corner.x;
     polypoint.y = corner.y;
     aCornerBuffer.Append( polypoint.x, polypoint.y );
 
-    // add left rounded end:
-    for( int ii = 0; ii < 1800; ii += delta )
+    ii = int(delta_angle) % delta;
+    if(ii <= 0) ii += delta;
+    for( ; ii < 1800; ii += delta )
     {
+        assert((ii-int(delta_angle)) % delta == 0);
         corner = wxPoint( 0, -radius );
-        RotatePoint( &corner, ii );
-        RotatePoint( &corner, -delta_angle );
+        RotatePoint( &corner, ii - int(delta_angle));
         corner += startp;
         polypoint.x = corner.x;
         polypoint.y = corner.y;
