@@ -57,6 +57,12 @@ SHAPE_POLY_SET::SHAPE_POLY_SET( const SHAPE_POLY_SET& aOther ) :
 {
 }
 
+SHAPE_POLY_SET::SHAPE_POLY_SET(const SHAPE_POLY_SET::POLYGON &aOther) :
+    SHAPE( SH_POLY_SET )
+{
+    m_polys.push_back(aOther);
+}
+
 SHAPE* SHAPE_POLY_SET::Clone() const
 {
     return new SHAPE_POLY_SET( *this );

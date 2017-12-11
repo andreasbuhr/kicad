@@ -72,13 +72,13 @@ private:
     std::vector<double> m_domain_boundaries_x;
     std::vector<double> m_domain_boundaries_y;
 
-    void addItemToPolygons(const BOARD_CONNECTED_ITEM* item);
-
     int m_numDomains;
     // for intersection checks:
     std::vector<EDA_RECT> m_domain_boxes;
     // for boolean intersection
     std::vector<SHAPE_POLY_SET> m_domain_polys;
+    // used layers
+    std::vector<PCB_LAYER_ID> m_layers;
     // the resulting polygons on each layer
     std::vector<std::map<PCB_LAYER_ID,SHAPE_POLY_SET>> m_polygons;
 };

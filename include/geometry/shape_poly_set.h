@@ -408,6 +408,13 @@ class SHAPE_POLY_SET : public SHAPE
         SHAPE_POLY_SET( const SHAPE_POLY_SET& aOther );
 
         /**
+         * Copy constructor SHAPE_POLY_SET
+         * Performs a deep copy of \p aOther into \p this.
+         * @param aOther is the SHAPE_POLY_SET object that will be copied.
+         */
+        SHAPE_POLY_SET( const POLYGON& aOther );
+
+        /**
          * Function GetRelativeIndices
          *
          * Converts a global vertex index ---i.e., a number that globally identifies a vertex in a

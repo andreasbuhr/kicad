@@ -22,6 +22,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#include <chrono>
+#include <fstream>
+
 #include "si_simulation.h"
 
 #include <class_board.h>
@@ -54,6 +57,7 @@ SI_SIMULATION::~SI_SIMULATION()
 
 void SI_SIMULATION::BuildMesh()
 {
+
     // step 1: find bounding box
     m_bbox = m_board->GetBoardEdgesBoundingBox();
 
@@ -119,18 +123,55 @@ void SI_SIMULATION::BuildMesh()
         m_domain_polys.push_back( domain_poly );
     }
 
-    for( TRACK* track : m_board->Tracks() )
-    {
-        addItemToPolygons( track );
+    // get all layers
+    m_layers.clear();
+    for(LSEQ cu_stack = m_board->GetEnabledLayers().CuStack();  cu_stack;  ++cu_stack ){
+        m_layers.push_back(*cu_stack);
     }
-    for( auto mod : m_board->Modules() )
-    {
-        for( auto pad : mod->Pads() )
-            addItemToPolygons( pad );
+
+    auto begin_time = std::chrono::system_clock::now();
+
+
+    for (PCB_LAYER_ID id : m_layers){
+        SHAPE_POLY_SET pset;
+        m_board->ConvertBrdLayerToPolygonalContours( id, pset );
+        for(int polygon_nr = 0; polygon_nr < pset.OutlineCount(); ++polygon_nr){
+            SHAPE_POLY_SET single_pset(pset.Polygon( polygon_nr ));
+            auto bbox = single_pset.BBox();
+            for( int domain = 0; domain < m_numDomains; ++domain ){
+                if(!bbox.Intersects(m_domain_boxes[domain]))
+                    continue;
+                SHAPE_POLY_SET mysquare(m_domain_polys[domain]);
+                mysquare.BooleanIntersection(single_pset, SHAPE_POLY_SET::PM_FAST);
+                if(!(mysquare.BBox().GetArea()>0))
+                    continue;
+                m_polygons[domain][id].Append(mysquare);
+            }
+        }
     }
-    for( auto zone : m_board->Zones() ){
-        addItemToPolygons( zone );
+
+    for (PCB_LAYER_ID id : m_layers){
+        for( int domain = 0; domain < m_numDomains; ++domain ){
+            m_polygons[domain][id].BooleanAdd(SHAPE_POLY_SET{}, SHAPE_POLY_SET::PM_FAST);
+        }
     }
+
+    int vertices = 0;
+    for(auto& map : m_polygons){
+        for(auto& ele : map){
+            auto& pset = ele.second;
+                vertices += pset.TotalVertices();
+        }
+    }
+    std::cout << "I have " << vertices << " Vertices" << std::endl;
+
+
+    auto end_time = std::chrono::system_clock::now();
+    auto elapsed_ns =
+    std::chrono::duration<long long, std::nano>(end_time-begin_time).count();
+
+    std::ofstream debugout("/home/andreasbuhr/kicad.time", std::ios_base::app);
+    debugout << "calculation took " << elapsed_ns / 1000000 << " ms" << std::endl;
 }
 
 void SI_SIMULATION::setMaxFreq(double f)
@@ -171,27 +212,4 @@ int SI_SIMULATION::getMin_number_of_domains() const
 void SI_SIMULATION::setMin_number_of_domains(int min_number_of_domains)
 {
     m_min_number_of_domains = min_number_of_domains;
-}
-
-void SI_SIMULATION::addItemToPolygons(const BOARD_CONNECTED_ITEM *item)
-{
-    // todo: why do we need this?
-    if(! (item->GetNetCode() < m_board->GetNetCount()))
-        return;
-
-    auto bbox = item->GetBoundingBox();
-    SHAPE_POLY_SET pset;
-    const int segsPerCircle = 16;
-    double correctionFactor = 1.0 / cos( M_PI / (double) segsPerCircle );
-    item->TransformShapeWithClearanceToPolygon( pset, 0, segsPerCircle, correctionFactor );
-
-    for( int domain = 0; domain < m_numDomains; ++domain ){
-        if(!bbox.Intersects(m_domain_boxes[domain]))
-            continue;
-        SHAPE_POLY_SET psetcopy(pset);
-        psetcopy.BooleanIntersection(m_domain_polys[domain], SHAPE_POLY_SET::PM_FAST);
-        if(!(psetcopy.BBox().GetArea()>0))
-            continue;
-        m_polygons[domain][item->GetLayer()].BooleanAdd(psetcopy, SHAPE_POLY_SET::PM_FAST);
-    }
 }

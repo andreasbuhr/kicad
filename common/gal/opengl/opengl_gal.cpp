@@ -826,11 +826,11 @@ void OPENGL_GAL::DrawPolygon( const SHAPE_POLY_SET& aPolySet )
     for( int j = 0; j < aPolySet.OutlineCount(); ++j )
     {
         const SHAPE_LINE_CHAIN& outline = aPolySet.COutline( j );
-        const int pointCount = outline.PointCount();
+        const int pointCount = outline.SegmentCount() + 1;
         std::unique_ptr<GLdouble[]> points( new GLdouble[3 * pointCount] );
         GLdouble* ptr = points.get();
 
-        for( int i = 0; i < outline.PointCount(); ++i )
+        for( int i = 0; i < pointCount; ++i )
         {
             const VECTOR2I& p = outline.CPoint( i );
             *ptr++ = p.x;
@@ -1511,28 +1511,30 @@ void OPENGL_GAL::drawStrokedSemiCircle( const VECTOR2D& aCenterPoint, double aRa
 
 void OPENGL_GAL::drawPolygon( GLdouble* aPoints, int aPointCount )
 {
-    currentManager->Shader( SHADER_NONE );
-    currentManager->Color( fillColor.r, fillColor.g, fillColor.b, fillColor.a );
+    if(isFillEnabled){
+        currentManager->Shader( SHADER_NONE );
+        currentManager->Color( fillColor.r, fillColor.g, fillColor.b, fillColor.a );
 
-    // Any non convex polygon needs to be tesselated
-    // for this purpose the GLU standard functions are used
-    TessParams params = { currentManager, tessIntersects };
-    gluTessBeginPolygon( tesselator, &params );
-    gluTessBeginContour( tesselator );
+        // Any non convex polygon needs to be tesselated
+        // for this purpose the GLU standard functions are used
+        TessParams params = { currentManager, tessIntersects };
+        gluTessBeginPolygon( tesselator, &params );
+        gluTessBeginContour( tesselator );
 
-    GLdouble* point = aPoints;
+        GLdouble* point = aPoints;
 
-    for( int i = 0; i < aPointCount; ++i )
-    {
-        gluTessVertex( tesselator, point, point );
-        point += 3;     // 3 coordinates
+        for( int i = 0; i < aPointCount; ++i )
+        {
+            gluTessVertex( tesselator, point, point );
+            point += 3;     // 3 coordinates
+        }
+
+        gluTessEndContour( tesselator );
+        gluTessEndPolygon( tesselator );
+
+        // Free allocated intersecting points
+        tessIntersects.clear();
     }
-
-    gluTessEndContour( tesselator );
-    gluTessEndPolygon( tesselator );
-
-    // Free allocated intersecting points
-    tessIntersects.clear();
 
     if( isStrokeEnabled )
         drawPolyline( [&](int idx) { return VECTOR2D( aPoints[idx * 3], aPoints[idx * 3 + 1] ); },

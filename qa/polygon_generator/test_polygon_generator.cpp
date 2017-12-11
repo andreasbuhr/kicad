@@ -36,6 +36,8 @@
 #include <class_drawsegment.h>
 #include <class_module.h>
 
+#include <si_simulation.h>
+
 BOARD* loadBoard( const std::string& filename )
 {
     PLUGIN::RELEASER pi( new PCB_IO );
@@ -58,25 +60,6 @@ BOARD* loadBoard( const std::string& filename )
 }
 
 
-void process( const BOARD_CONNECTED_ITEM* item, int net )
-{
-    if( item->GetNetCode() != net )
-        return;
-
-    SHAPE_POLY_SET pset;
-
-    const int segsPerCircle = 64;
-
-    double correctionFactor = 1.0 / cos( M_PI / (double) segsPerCircle );
-
-
-    item->TransformShapeWithClearanceToPolygon( pset, 1, segsPerCircle, correctionFactor );
-
-    SHAPE_FILE_IO shapeIo;    // default = stdout
-    shapeIo.Write( &pset );
-}
-
-
 int main( int argc, char* argv[] )
 {
     if( argc < 2 )
@@ -91,22 +74,7 @@ int main( int argc, char* argv[] )
     if( !brd )
         return -1;
 
-    for( unsigned net = 0; net < brd->GetNetCount(); net++ )
-    {
-        printf( "net %d\n", net );
+    auto si(std::make_shared<SI_SIMULATION>(brd.get()));
 
-        for( auto track : brd->Tracks() )
-            process( track, net );
-
-        for( auto mod : brd->Modules() )
-        {
-            for( auto pad : mod->Pads() )
-                process( pad, net );
-        }
-
-        for( auto zone : brd->Zones() )
-            process( zone, net );
-
-        printf( "endnet\n" );
-    }
+    si->BuildMesh();
 }
