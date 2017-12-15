@@ -49,6 +49,8 @@ public:
      * Builds the prism mesh for SI simulation.
      */
     void BuildMesh();
+
+    void GenerateTriangleMesh(const SHAPE_POLY_SET& aPolygon, int name);
     void setMaxFreq(double f);
     double getMaxFreq();
 

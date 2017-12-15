@@ -25,6 +25,9 @@
 #include <chrono>
 #include <fstream>
 
+#include <boost/lexical_cast.hpp>
+
+
 #include "si_simulation.h"
 
 #include <class_board.h>
@@ -103,6 +106,8 @@ void SI_SIMULATION::BuildMesh()
     m_domain_polys.clear();
     m_polygons.clear();
     m_polygons.resize(m_numDomains);
+    m_polygons_for_meshing.clear();
+    m_polygons_for_meshing.resize(m_numDomains);
 
     // create bounding box and polygon for each domain:
     for( int domain = 0; domain < m_numDomains; ++domain )
@@ -139,6 +144,8 @@ void SI_SIMULATION::BuildMesh()
             SHAPE_POLY_SET single_pset(pset.Polygon( polygon_nr ));
             auto bbox = single_pset.BBox();
             for( int domain = 0; domain < m_numDomains; ++domain ){
+                if(domain != 18 && false)
+                    continue;
                 if(!bbox.Intersects(m_domain_boxes[domain]))
                     continue;
                 SHAPE_POLY_SET mysquare(m_domain_polys[domain]);
@@ -156,6 +163,7 @@ void SI_SIMULATION::BuildMesh()
         }
     }
 
+
     int vertices = 0;
     for(auto& map : m_polygons){
         for(auto& ele : map){
@@ -172,6 +180,63 @@ void SI_SIMULATION::BuildMesh()
 
     std::ofstream debugout("/home/andreasbuhr/kicad.time", std::ios_base::app);
     debugout << "calculation took " << elapsed_ns / 1000000 << " ms" << std::endl;
+
+
+    for( int domain = 0; domain < m_numDomains; ++domain ){
+        SHAPE_POLY_SET formeshing(m_domain_polys[domain]);
+        for (PCB_LAYER_ID id : m_layers){
+            formeshing.Append(m_polygons[domain][id]);
+        }
+        //formeshing.BooleanAdd(SHAPE_POLY_SET{}, SHAPE_POLY_SET::PM_FAST, true);
+        GenerateTriangleMesh(formeshing, domain);
+    }
+}
+
+bool myoperatorless(const VECTOR2I& a, const VECTOR2I& b){
+    if(a.y != b.y)
+        return a.y < b.y;
+    return a.x < b.x;
+}
+
+bool myoperatorequal(const VECTOR2I& a, const VECTOR2I& b){
+    return a.x == b.x && a.y == b.y;
+}
+
+void SI_SIMULATION::GenerateTriangleMesh(const SHAPE_POLY_SET &aPolygon, int name)
+{
+    if(aPolygon.OutlineCount() < 1) return;
+
+    SHAPE_POLY_SET myPolygon(aPolygon);
+
+    std::vector<VECTOR2I> allpoints;
+    allpoints.reserve(myPolygon.TotalVertices());
+    for( auto iterator = myPolygon.CIterateWithHoles(); iterator; iterator++ )
+    {
+        allpoints.push_back(*iterator);
+    }
+    std::sort(allpoints.begin(), allpoints.end(), myoperatorless);
+    allpoints.erase( unique( allpoints.begin(), allpoints.end(), myoperatorequal ), allpoints.end() );
+
+    std::vector<std::pair<int, int>> segments;
+    for( auto iterator = myPolygon.CIterateSegmentsWithHoles(); iterator; iterator++){
+        const SEG& segment = *iterator;
+        int first_index = std::lower_bound( allpoints.begin(),
+                                            allpoints.end(), segment.A, myoperatorless ) - allpoints.begin();
+        int second_index = std::lower_bound( allpoints.begin(),
+                                            allpoints.end(), segment.B, myoperatorless ) - allpoints.begin();
+        segments.push_back(std::make_pair(first_index, second_index));
+    }
+
+    std::ofstream triout("/home/andreasbuhr/foo/kicad" + boost::lexical_cast<std::string>(name) + ".poly");
+    triout << allpoints.size() << " " << 2 << " " << 0 << " " << 0 << std::endl;
+    for(int i = 0; i < allpoints.size(); ++i){
+        triout << i << " " << allpoints[i].x / 1e9 << " " << allpoints[i].y / 1e9 << "\n";
+    }
+    triout << segments.size() << " " << 0 << std::endl;
+    for(int i = 0; i < segments.size(); ++i){
+        triout << i << " " << segments[i].first << " " << segments[i].second << "\n";
+    }
+    triout << "0" << std::endl;
 }
 
 void SI_SIMULATION::setMaxFreq(double f)
