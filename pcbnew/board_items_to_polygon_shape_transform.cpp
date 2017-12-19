@@ -361,23 +361,9 @@ void ZONE_CONTAINER::TransformSolidAreasShapesToPolygonSet(
         return;
 
     // add filled areas polygons
-    aCornerBuffer.Append( m_FilledPolysList );
-
-    // add filled areas outlines, which are drawn with thick lines
-    for( int i = 0; i < m_FilledPolysList.OutlineCount(); i++ )
-    {
-        const SHAPE_LINE_CHAIN& path = m_FilledPolysList.COutline( i );
-
-        for( int j = 0; j < path.PointCount(); j++ )
-        {
-            const VECTOR2I& a = path.CPoint( j );
-            const VECTOR2I& b = path.CPoint( j + 1 );
-
-            TransformRoundedEndsSegmentToPolygon( aCornerBuffer, wxPoint( a.x, a.y ), wxPoint( b.x, b.y ),
-                                                    aCircleToSegmentsCount,
-                                                    GetMinThickness() );
-        }
-    }
+    SHAPE_POLY_SET toadd(m_FilledPolysList);
+    toadd.Inflate(GetMinThickness()/2, aCircleToSegmentsCount);
+    aCornerBuffer.Append( toadd );
 }
 
 /**
