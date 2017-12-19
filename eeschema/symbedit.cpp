@@ -42,6 +42,7 @@
 #include <class_libentry.h>
 #include <wildcards_and_files_ext.h>
 #include <sch_legacy_plugin.h>
+#include <properties.h>
 
 
 void LIB_EDIT_FRAME::LoadOneSymbol()
@@ -88,21 +89,21 @@ void LIB_EDIT_FRAME::LoadOneSymbol()
     }
     catch( const IO_ERROR& ioe )
     {
-        msg.Printf( _( "Cannot import symbol library '%s'." ), filename );
+        msg.Printf( _( "Cannot import symbol library \"%s\"." ), filename );
         DisplayErrorMessage( this, msg, ioe.What() );
         return;
     }
 
     if( symbols.empty() )
     {
-        msg.Printf( _( "Symbol library file '%s' is empty." ), filename );
+        msg.Printf( _( "Symbol library file \"%s\" is empty." ), filename );
         DisplayError( this,  msg );
         return;
     }
 
     if( symbols.GetCount() > 1 )
     {
-        msg.Printf( _( "More than one symbol found in symbol file '%s'." ), filename );
+        msg.Printf( _( "More than one symbol found in symbol file \"%s\"." ), filename );
         wxMessageBox( msg, _( "Warning" ), wxOK | wxICON_EXCLAMATION, this );
     }
 
@@ -151,13 +152,16 @@ void LIB_EDIT_FRAME::LoadOneSymbol()
 
 void LIB_EDIT_FRAME::SaveOneSymbol()
 {
-    wxString        msg;
-    PROJECT&        prj = Prj();
-    SEARCH_STACK*   search = prj.SchSearchS();
+    // Export the current part as a symbol (.sym file)
+    // this is the current part without its aliases and doc file
+    // because a .sym file is used to import graphics in a part being edited
     LIB_PART*       part = GetCurPart();
 
     if( !part || part->GetDrawItems().empty() )
         return;
+
+    PROJECT&        prj = Prj();
+    SEARCH_STACK*   search = prj.SchSearchS();
 
     wxString default_path = prj.GetRString( PROJECT::SCH_LIB_PATH );
 
@@ -181,18 +185,30 @@ void LIB_EDIT_FRAME::SaveOneSymbol()
 
     prj.SetRString( PROJECT::SCH_LIB_PATH, fn.GetPath() );
 
-    msg.Printf( _( "Saving symbol in '%s'" ), GetChars( fn.GetPath() ) );
+    if( fn.FileExists() )
+    {
+        wxRemove( fn.GetFullPath() );
+    }
+
+    wxString        msg;
+    msg.Printf( _( "Saving symbol in \"%s\"" ), fn.GetPath() );
     SetStatusText( msg );
 
     SCH_PLUGIN::SCH_PLUGIN_RELEASER pi( SCH_IO_MGR::FindPlugin( SCH_IO_MGR::SCH_LEGACY ) );
 
     try
     {
-        pi->SaveSymbol( fn.GetFullPath(), part );
+        PROPERTIES nodoc_props;     // Doc file is useless for a .sym file
+        nodoc_props[ SCH_LEGACY_PLUGIN::PropNoDocFile ] = "";
+        pi->CreateSymbolLib( fn.GetFullPath(), &nodoc_props );
+
+        LIB_PART* saved_part = new LIB_PART( *part );
+        saved_part->RemoveAllAliases();     // useless in a .sym file
+        pi->SaveSymbol( fn.GetFullPath(), saved_part, &nodoc_props );
     }
     catch( const IO_ERROR& ioe )
     {
-        msg.Printf( _( "An error occurred attempting to save symbol file '%s'" ),
+        msg.Printf( _( "An error occurred attempting to save symbol file \"%s\"" ),
                     fn.GetFullPath() );
         DisplayErrorMessage( this, msg, ioe.What() );
     }

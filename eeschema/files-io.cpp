@@ -101,7 +101,7 @@ bool SCH_EDIT_FRAME::SaveEEFile( SCH_SCREEN* aScreen, bool aSaveUnderNewName,
 
         if( !wxRenameFile( schematicFileName.GetFullPath(), backupFileName.GetFullPath() ) )
         {
-            msg.Printf( _( "Could not save backup of file '%s'" ),
+            msg.Printf( _( "Could not save backup of file \"%s\"" ),
                         GetChars( schematicFileName.GetFullPath() ) );
             DisplayError( this, msg );
         }
@@ -120,11 +120,11 @@ bool SCH_EDIT_FRAME::SaveEEFile( SCH_SCREEN* aScreen, bool aSaveUnderNewName,
     }
     catch( const IO_ERROR& ioe )
     {
-        msg.Printf( _( "Error saving schematic file '%s'.\n%s" ),
+        msg.Printf( _( "Error saving schematic file \"%s\".\n%s" ),
                     GetChars( schematicFileName.GetFullPath() ), GetChars( ioe.What() ) );
         DisplayError( this, msg );
 
-        msg.Printf( _( "Failed to save '%s'" ), GetChars( schematicFileName.GetFullPath() ) );
+        msg.Printf( _( "Failed to save \"%s\"" ), GetChars( schematicFileName.GetFullPath() ) );
         AppendMsgPanel( wxEmptyString, msg, CYAN );
 
         success = false;
@@ -207,7 +207,7 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
     if( !LockFile( fullFileName ) )
     {
         wxString msg = wxString::Format( _(
-                "Schematic file '%s' is already open." ),
+                "Schematic file \"%s\" is already open." ),
                 GetChars( fullFileName )
                 );
         DisplayError( this, msg );
@@ -227,7 +227,7 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
     {
         // notify user that fullFileName does not exist, ask if user wants to create it.
         wxString ask = wxString::Format( _(
-                "Schematic '%s' does not exist.  Do you wish to create it?" ),
+                "Schematic \"%s\" does not exist.  Do you wish to create it?" ),
                 GetChars( fullFileName )
                 );
         if( !IsOK( this, ask ) )
@@ -311,11 +311,11 @@ bool SCH_EDIT_FRAME::OpenProjectFiles( const std::vector<wxString>& aFileSet, in
             Zoom_Automatique( false );
 
             wxString msg;
-            msg.Printf( _( "Error loading schematic file '%s'.\n%s" ),
+            msg.Printf( _( "Error loading schematic file \"%s\".\n%s" ),
                         GetChars( fullFileName ), GetChars( ioe.What() ) );
             DisplayError( this, msg );
 
-            msg.Printf( _( "Failed to load '%s'" ), GetChars( fullFileName ) );
+            msg.Printf( _( "Failed to load \"%s\"" ), GetChars( fullFileName ) );
             AppendMsgPanel( wxEmptyString, msg, CYAN );
 
             return false;
@@ -455,10 +455,10 @@ bool SCH_EDIT_FRAME::AppendSchematic()
     }
     catch( const IO_ERROR& ioe )
     {
-        msg.Printf( _( "Error occurred loading schematic file '%s'." ), fullFileName );
+        msg.Printf( _( "Error occurred loading schematic file \"%s\"." ), fullFileName );
         DisplayErrorMessage( this, msg, ioe.What() );
 
-        msg.Printf( _( "Failed to load schematic '%s'" ), fullFileName );
+        msg.Printf( _( "Failed to load schematic \"%s\"" ), fullFileName );
         AppendMsgPanel( wxEmptyString, msg, CYAN );
 
         return false;
@@ -476,7 +476,7 @@ bool SCH_EDIT_FRAME::AppendSchematic()
     if( hierarchy.TestForRecursion( sheetHierarchy, destFile.GetFullPath( wxPATH_UNIX ) ) )
     {
         msg.Printf( _( "The sheet changes cannot be made because the destination sheet already "
-                       "has the sheet <%s> or one of it's subsheets as a parent somewhere in "
+                       "has the sheet \"%s\" or one of it's subsheets as a parent somewhere in "
                        "the schematic hierarchy." ),
                     destFile.GetFullPath() );
         DisplayError( this, msg );
@@ -523,7 +523,7 @@ bool SCH_EDIT_FRAME::AppendSchematic()
             }
             catch( const IO_ERROR& ioe )
             {
-                msg.Printf( _( "An error occurred loading the symbol library table '%s'." ),
+                msg.Printf( _( "An error occurred loading the symbol library table \"%s\"." ),
                             symLibTableFn.GetFullPath() );
                 DisplayErrorMessage( NULL, msg, ioe.What() );
             }
@@ -661,6 +661,8 @@ void SCH_EDIT_FRAME::OnImportProject( wxCommandEvent& aEvent )
     if( !AskToSaveChanges() )
         return;
 
+    // Set the project location if none is set
+    bool setProject = Prj().GetProjectFullName().IsEmpty();
     wxString path = wxPathOnly( Prj().GetProjectFullName() );
 
     wxFileDialog dlg( this, _( "Import Schematic" ), path,
@@ -669,6 +671,13 @@ void SCH_EDIT_FRAME::OnImportProject( wxCommandEvent& aEvent )
 
     if( dlg.ShowModal() == wxID_CANCEL )
         return;
+
+    if( setProject )
+    {
+        wxFileName projectFn( dlg.GetPath() );
+        projectFn.SetExt( ProjectFileExtension );
+        Prj().SetProjectFullName( projectFn.GetFullPath() );
+    }
 
     // For now there is only one import plugin
     ImportFile( dlg.GetPath(), SCH_IO_MGR::SCH_EAGLE );
@@ -687,7 +696,7 @@ void SCH_EDIT_FRAME::OnSaveProject( wxCommandEvent& aEvent )
 
     if( !fn.IsDirWritable() )
     {
-        wxString msg = wxString::Format( _( "Directory '%s' is not writable." ), fn.GetPath() );
+        wxString msg = wxString::Format( _( "Directory \"%s\" is not writable." ), fn.GetPath() );
 
         DisplayError( this, msg );
         return;
@@ -766,7 +775,7 @@ bool SCH_EDIT_FRAME::ImportFile( const wxString& aFileName, int aFileType )
 
             if( !LockFile( fullFileName ) )
             {
-                wxString msg = wxString::Format( _( "Schematic file '%s' is already open." ),
+                wxString msg = wxString::Format( _( "Schematic file \"%s\" is already open." ),
                         GetChars( fullFileName ) );
                 DisplayError( this, msg );
                 return false;
@@ -812,11 +821,11 @@ bool SCH_EDIT_FRAME::ImportFile( const wxString& aFileName, int aFileType )
                 Zoom_Automatique( false );
 
                 wxString msg;
-                msg.Printf( _( "Error loading schematic file '%s'.\n%s" ),
+                msg.Printf( _( "Error loading schematic file \"%s\".\n%s" ),
                             fullFileName, ioe.What() );
                 DisplayError( this, msg );
 
-                msg.Printf( _( "Failed to load '%s'" ), fullFileName );
+                msg.Printf( _( "Failed to load \"%s\"" ), fullFileName );
                 AppendMsgPanel( wxEmptyString, msg, CYAN );
 
                 return false;

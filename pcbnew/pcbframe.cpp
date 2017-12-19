@@ -609,7 +609,7 @@ void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
     {
         wxString msg = wxString::Format( _(
                 "Save the changes in\n"
-                "'%s'\n"
+                "\"%s\"\n"
                 "before closing?" ),
                 GetChars( GetBoard()->GetFileName() )
                 );
@@ -662,7 +662,7 @@ void PCB_EDIT_FRAME::OnCloseWindow( wxCloseEvent& Event )
     if( fn.FileExists() && !wxRemoveFile( fn.GetFullPath() ) )
     {
         wxString msg = wxString::Format( _(
-                "The auto save file '%s' could not be removed!" ),
+                "The auto save file \"%s\" could not be removed!" ),
                 GetChars( fn.GetFullPath() )
                 );
 

@@ -352,24 +352,25 @@ bool SCH_SCREEN::IsJunctionNeeded( const wxPoint& aPosition, bool aNew )
     bool has_line = false;
     bool has_nonparallel = false;
     int end_count = 0;
-
+    int pin_count = 0;
     std::vector< SCH_LINE* > lines;
 
     for( SCH_ITEM* item = m_drawList.begin(); item; item = item->Next() )
     {
         if( item->GetFlags() & STRUCT_DELETED )
             continue;
+
         if( aNew && ( item->Type() == SCH_JUNCTION_T ) && ( item->HitTest( aPosition ) ) )
             return false;
 
-        if( item->Type() != SCH_LINE_T )
-            continue;
-
-        if( item->GetLayer() != LAYER_WIRE )
-            continue;
-
-        if( item->HitTest( aPosition, 0 ) )
+        if( ( item->Type() == SCH_LINE_T )
+                && ( item->GetLayer() == LAYER_WIRE )
+                && ( item->HitTest( aPosition, 0 ) ) )
             lines.push_back( (SCH_LINE*) item );
+
+        if( ( item->Type() == SCH_COMPONENT_T )
+                && ( item->IsConnected( aPosition ) ) )
+            pin_count++;
     }
 
     BOOST_FOREACH( SCH_LINE* line, lines)
@@ -390,10 +391,12 @@ bool SCH_SCREEN::IsJunctionNeeded( const wxPoint& aPosition, bool aNew )
         }
     }
 
-    int has_pin = !!( GetPin( aPosition, NULL, true ) );
+    // If there is line intersecting a pin
+    if( pin_count && has_line )
+        return true;
 
-    // If there is line intersecting a pin or non-parallel end
-    if( has_pin && ( has_line || end_count > 1 ) )
+    // If there are three or more endpoints
+    if( pin_count + end_count > 2 )
         return true;
 
     // If there is at least one segment that ends on a non-parallel line or
@@ -481,23 +484,25 @@ void SCH_SCREEN::UpdateSymbolLinks( bool aForce )
     // Initialize or reinitialize the pointer to the LIB_PART for each component
     // found in m_drawList, but only if needed (change in lib or schematic)
     // therefore the calculation time is usually very low.
-
     if( m_drawList.GetCount() )
     {
         SYMBOL_LIB_TABLE* libs = Prj().SchSymbolLibTable();
         int mod_hash = libs->GetModifyHash();
+        SCH_TYPE_COLLECTOR c;
+
+        c.Collect( GetDrawItems(), SCH_COLLECTOR::ComponentsOnly );
 
         // Must we resolve?
         if( (m_modification_sync != mod_hash) || aForce )
         {
-            SCH_TYPE_COLLECTOR c;
-
-            c.Collect( GetDrawItems(), SCH_COLLECTOR::ComponentsOnly );
-
             SCH_COMPONENT::ResolveAll( c, *libs, Prj().SchLibs()->GetCacheLibrary() );
 
             m_modification_sync = mod_hash;     // note the last mod_hash
         }
+        // Resolving will update the pin caches but we must ensure that this happens
+        // even if the libraries don't change.
+        else
+            SCH_COMPONENT::UpdateAllPinCaches( c );
     }
 }
 

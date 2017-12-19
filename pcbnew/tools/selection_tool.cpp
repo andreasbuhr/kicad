@@ -1327,10 +1327,11 @@ BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
         text = item->GetSelectMenuText();
 
         wxString menuText = wxString::Format("&%d. %s", i + 1, text );
-        menu.Add( menuText, i + 1 );
+        menu.Add( menuText, i + 1, item->GetMenuImage() );
     }
 
-    menu.SetTitle( _( "Clarify selection" ) );
+    menu.SetTitle( _( "Clarify Selection" ) );
+    menu.SetIcon( info_xpm );
     menu.DisplayTitle( true );
     SetContextMenu( &menu, CMENU_NOW );
 
@@ -1364,6 +1365,14 @@ BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
         }
         else if( evt->Action() == TA_CONTEXT_MENU_CHOICE )
         {
+            if( current )
+            {
+                current->ClearBrightened();
+                getView()->Hide( current, false );
+                highlightGroup.Remove( current );
+                getView()->MarkTargetDirty( KIGFX::TARGET_OVERLAY );
+            }
+
             OPT<int> id = evt->GetCommandId();
 
             // User has selected an item, so this one will be returned
@@ -1375,14 +1384,6 @@ BOARD_ITEM* SELECTION_TOOL::disambiguationMenu( GENERAL_COLLECTOR* aCollector )
             break;
         }
     }
-
-    if( current && current->IsBrightened() )
-    {
-        current->ClearBrightened();
-        getView()->Hide( current, false );
-        getView()->MarkTargetDirty( KIGFX::TARGET_OVERLAY );
-    }
-
     getView()->Remove( &highlightGroup );
 
 

@@ -163,15 +163,9 @@ bool ZONE_CONTAINER::UnFill()
 }
 
 
-const wxPoint& ZONE_CONTAINER::GetPosition() const
+const wxPoint ZONE_CONTAINER::GetPosition() const
 {
-    const WX_VECTOR_CONVERTER* pos;
-
-    // The retrieved vertex is a VECTOR2I. Casting it to a union WX_VECTOR_CONVERTER, we can later
-    // return the object shaped as a wxPoint. See the definition of the union in class_zone.h for
-    // more information on this hack.
-    pos = reinterpret_cast<const WX_VECTOR_CONVERTER*>( &GetCornerPosition( 0 ) );
-    return pos->wx;
+    return (wxPoint) GetCornerPosition( 0 );
 }
 
 
@@ -1346,3 +1340,37 @@ bool ZONE_CONTAINER::BuildSmoothedPoly( SHAPE_POLY_SET& aSmoothedPoly ) const
 
     return true;
 };
+
+/* Function TransformOutlinesShapeWithClearanceToPolygon
+ * Convert the zone filled areas polygons to polygons
+ * inflated (optional) by max( aClearanceValue, the zone clearance)
+ * and copy them in aCornerBuffer
+ * param aClearanceValue = the clearance around polygons
+ * param aAddClearance = true to add a clearance area to the polygon
+ *                      false to create the outline polygon.
+ */
+void ZONE_CONTAINER::TransformOutlinesShapeWithClearanceToPolygon(
+        SHAPE_POLY_SET& aCornerBuffer, int aMinClearanceValue, bool aUseNetClearance ) const
+{
+    // Creates the zone outline polygon (with holes if any)
+    SHAPE_POLY_SET polybuffer;
+    BuildSmoothedPoly( polybuffer );
+
+    // add clearance to outline
+    int clearance = aMinClearanceValue;
+
+    if( aUseNetClearance && IsOnCopperLayer() )
+    {
+        clearance = GetClearance();
+        if( aMinClearanceValue > clearance )
+            clearance = aMinClearanceValue;
+    }
+
+    // Calculate the polygon with clearance
+    // holes are linked to the main outline, so only one polygon is created.
+    if( clearance )
+        polybuffer.Inflate( clearance, 16 );
+
+    polybuffer.Fracture( SHAPE_POLY_SET::PM_FAST );
+    aCornerBuffer.Append( polybuffer );
+}

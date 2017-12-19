@@ -51,13 +51,6 @@
 #include <omp.h>
 #endif /* USE_OPENMP */
 
-extern void BuildUnconnectedThermalStubsPolygonList( SHAPE_POLY_SET& aCornerBuffer,
-        const BOARD* aPcb,
-        const ZONE_CONTAINER* aZone,
-        double aArcCorrection,
-        double aRoundPadThermalRotation );
-
-
 extern void CreateThermalReliefPadPolygon( SHAPE_POLY_SET& aCornerBuffer,
         const D_PAD& aPad,
         int aThermalGap,
@@ -88,11 +81,12 @@ void ZONE_FILLER::SetProgressReporter( PROGRESS_REPORTER* aReporter )
     m_progressReporter = aReporter;
 }
 
-
 void ZONE_FILLER::Fill( std::vector<ZONE_CONTAINER*> aZones )
 {
     std::vector<CN_ZONE_ISOLATED_ISLAND_LIST> toFill;
     auto connectivity = m_board->GetConnectivity();
+
+    connectivity->Lock();
 
     // Remove segment zones
     m_board->m_Zone.DeleteAll();
@@ -129,11 +123,11 @@ void ZONE_FILLER::Fill( std::vector<ZONE_CONTAINER*> aZones )
     {
         #ifdef USE_OPENMP
             #pragma omp master
+            if( m_progressReporter )
+            {
+                m_progressReporter->KeepRefreshing( true );
+            }
         #endif
-        if( m_progressReporter )
-        {
-            m_progressReporter->KeepRefreshing();
-        }
 
         #ifdef USE_OPENMP
             #pragma omp for schedule(dynamic)
@@ -191,11 +185,11 @@ void ZONE_FILLER::Fill( std::vector<ZONE_CONTAINER*> aZones )
     {
         #ifdef USE_OPENMP
             #pragma omp master
+            if( m_progressReporter )
+            {
+                m_progressReporter->KeepRefreshing( true );
+            }
         #endif
-        if( m_progressReporter )
-        {
-            m_progressReporter->KeepRefreshing();
-        }
 
         #ifdef USE_OPENMP
             #pragma omp for schedule(dynamic)
@@ -228,7 +222,11 @@ void ZONE_FILLER::Fill( std::vector<ZONE_CONTAINER*> aZones )
         {
             connectivity->Update( toFill[i].m_zone );
         }
+
+        connectivity->RecalculateRatsnest();
     }
+
+    connectivity->Unlock();
 }
 
 
@@ -681,8 +679,11 @@ void ZONE_FILLER::computeRawFilledAreas( const ZONE_CONTAINER* aZone,
     // Test thermal stubs connections and add polygons to remove unconnected stubs.
     // (this is a refinement for thermal relief shapes)
     if( aZone->GetNetCode() > 0 )
-        BuildUnconnectedThermalStubsPolygonList( thermalHoles, m_board, aZone,
+    {
+        buildUnconnectedThermalStubsPolygonList( thermalHoles, aZone, aFinalPolys,
                 correctionFactor, s_thermalRot );
+
+    }
 
     // remove copper areas corresponding to not connected stubs
     if( !thermalHoles.IsEmpty() )
@@ -917,4 +918,179 @@ bool ZONE_FILLER::fillPolygonWithHorizontalSegments( const SHAPE_LINE_CHAIN& aPo
     }   // End examine segments in one area
 
     return success;
+}
+
+
+/**
+ * Function buildUnconnectedThermalStubsPolygonList
+ * Creates a set of polygons corresponding to stubs created by thermal shapes on pads
+ * which are not connected to a zone (dangling bridges)
+ * @param aCornerBuffer = a SHAPE_POLY_SET where to store polygons
+ * @param aZone = a pointer to the ZONE_CONTAINER  to examine.
+ * @param aArcCorrection = arc correction factor.
+ * @param aRoundPadThermalRotation = the rotation in 1.0 degree for thermal stubs in round pads
+ */
+
+void ZONE_FILLER::buildUnconnectedThermalStubsPolygonList( SHAPE_POLY_SET& aCornerBuffer,
+                                              const ZONE_CONTAINER*       aZone,
+                                              const SHAPE_POLY_SET&       aRawFilledArea,
+                                              double                aArcCorrection,
+                                              double                aRoundPadThermalRotation ) const
+{
+    SHAPE_LINE_CHAIN spokes;
+    BOX2I itemBB;
+    VECTOR2I ptTest[4];
+    auto zoneBB = aRawFilledArea.BBox();
+
+
+    int      zone_clearance = aZone->GetZoneClearance();
+
+    int      biggest_clearance = m_board->GetDesignSettings().GetBiggestClearanceValue();
+    biggest_clearance = std::max( biggest_clearance, zone_clearance );
+    zoneBB.Inflate( biggest_clearance );
+
+    // half size of the pen used to draw/plot zones outlines
+    int pen_radius = aZone->GetMinThickness() / 2;
+
+    for( auto module : m_board->Modules() )
+    {
+        for( auto pad : module->Pads() )
+        {
+            // Rejects non-standard pads with tht-only thermal reliefs
+            if( aZone->GetPadConnection( pad ) == PAD_ZONE_CONN_THT_THERMAL
+             && pad->GetAttribute() != PAD_ATTRIB_STANDARD )
+                continue;
+
+            if( aZone->GetPadConnection( pad ) != PAD_ZONE_CONN_THERMAL
+             && aZone->GetPadConnection( pad ) != PAD_ZONE_CONN_THT_THERMAL )
+                continue;
+
+            if( !pad->IsOnLayer( aZone->GetLayer() ) )
+                continue;
+
+            if( pad->GetNetCode() != aZone->GetNetCode() )
+                continue;
+
+            // Calculate thermal bridge half width
+            int thermalBridgeWidth = aZone->GetThermalReliefCopperBridge( pad )
+                                     - aZone->GetMinThickness();
+            if( thermalBridgeWidth <= 0 )
+                continue;
+
+            // we need the thermal bridge half width
+            // with a small extra size to be sure we create a stub
+            // slightly larger than the actual stub
+            thermalBridgeWidth = ( thermalBridgeWidth + 4 ) / 2;
+
+            int thermalReliefGap = aZone->GetThermalReliefGap( pad );
+
+            itemBB = pad->GetBoundingBox();
+            itemBB.Inflate( thermalReliefGap );
+            if( !( itemBB.Intersects( zoneBB ) ) )
+                continue;
+
+            // Thermal bridges are like a segment from a starting point inside the pad
+            // to an ending point outside the pad
+
+            // calculate the ending point of the thermal pad, outside the pad
+            VECTOR2I endpoint;
+            endpoint.x = ( pad->GetSize().x / 2 ) + thermalReliefGap;
+            endpoint.y = ( pad->GetSize().y / 2 ) + thermalReliefGap;
+
+            // Calculate the starting point of the thermal stub
+            // inside the pad
+            VECTOR2I startpoint;
+            int copperThickness = aZone->GetThermalReliefCopperBridge( pad )
+                                  - aZone->GetMinThickness();
+
+            if( copperThickness < 0 )
+                copperThickness = 0;
+
+            // Leave a small extra size to the copper area inside to pad
+            copperThickness += KiROUND( IU_PER_MM * 0.04 );
+
+            startpoint.x = std::min( pad->GetSize().x, copperThickness );
+            startpoint.y = std::min( pad->GetSize().y, copperThickness );
+
+            startpoint.x /= 2;
+            startpoint.y /= 2;
+
+            // This is a CIRCLE pad tweak
+            // for circle pads, the thermal stubs orientation is 45 deg
+            double fAngle = pad->GetOrientation();
+            if( pad->GetShape() == PAD_SHAPE_CIRCLE )
+            {
+                endpoint.x     = KiROUND( endpoint.x * aArcCorrection );
+                endpoint.y     = endpoint.x;
+                fAngle = aRoundPadThermalRotation;
+            }
+
+            // contour line width has to be taken into calculation to avoid "thermal stub bleed"
+            endpoint.x += pen_radius;
+            endpoint.y += pen_radius;
+            // compute north, south, west and east points for zone connection.
+            ptTest[0] = VECTOR2I( 0, endpoint.y );       // lower point
+            ptTest[1] = VECTOR2I( 0, -endpoint.y );      // upper point
+            ptTest[2] = VECTOR2I( endpoint.x, 0 );       // right point
+            ptTest[3] = VECTOR2I( -endpoint.x, 0 );      // left point
+
+            // Test all sides
+            for( int i = 0; i < 4; i++ )
+            {
+                // rotate point
+                RotatePoint( ptTest[i], fAngle );
+
+                // translate point
+                ptTest[i] += pad->ShapePos();
+
+                if( aRawFilledArea.Contains( ptTest[i] ) )
+                    continue;
+
+                spokes.Clear();
+
+                // polygons are rectangles with width of copper bridge value
+                switch( i )
+                {
+                case 0:       // lower stub
+                    spokes.Append( -thermalBridgeWidth, endpoint.y );
+                    spokes.Append( +thermalBridgeWidth, endpoint.y );
+                    spokes.Append( +thermalBridgeWidth, startpoint.y );
+                    spokes.Append( -thermalBridgeWidth, startpoint.y );
+                    break;
+
+                case 1:       // upper stub
+                    spokes.Append( -thermalBridgeWidth, -endpoint.y );
+                    spokes.Append( +thermalBridgeWidth, -endpoint.y );
+                    spokes.Append( +thermalBridgeWidth, -startpoint.y );
+                    spokes.Append( -thermalBridgeWidth, -startpoint.y );
+                    break;
+
+                case 2:       // right stub
+                    spokes.Append( endpoint.x, -thermalBridgeWidth );
+                    spokes.Append( endpoint.x, thermalBridgeWidth );
+                    spokes.Append( +startpoint.x, thermalBridgeWidth );
+                    spokes.Append( +startpoint.x, -thermalBridgeWidth );
+                    break;
+
+                case 3:       // left stub
+                    spokes.Append( -endpoint.x, -thermalBridgeWidth );
+                    spokes.Append( -endpoint.x, thermalBridgeWidth );
+                    spokes.Append( -startpoint.x, thermalBridgeWidth );
+                    spokes.Append( -startpoint.x, -thermalBridgeWidth );
+                    break;
+                }
+
+                aCornerBuffer.NewOutline();
+
+                // add computed polygon to list
+                for( int ic = 0; ic < spokes.PointCount(); ic++ )
+                {
+                    auto cpos = spokes.CPoint( i );
+                    RotatePoint( cpos, fAngle );                               // Rotate according to module orientation
+                    cpos += pad->ShapePos();                              // Shift origin to position
+                    aCornerBuffer.Append( cpos );
+                }
+            }
+        }
+    }
 }

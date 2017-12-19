@@ -337,4 +337,18 @@ wxString GetOSXKicadMachineDataDir();
 wxString GetOSXKicadDataDir();
 #endif
 
+// Some wxWidgets versions (for instance before 3.1.0) do not include
+// this function, so add it if missing
+#if !wxCHECK_VERSION( 3, 1, 0 )
+#define USE_KICAD_WXSTRING_HASH     // for common.cpp
+///> Template specialization to enable wxStrings for certain containers (e.g. unordered_map)
+namespace std
+{
+    template<> struct hash<wxString>
+    {
+        size_t operator()( const wxString& s ) const;
+    };
+}
+#endif
+
 #endif  // INCLUDE__COMMON_H_

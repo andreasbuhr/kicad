@@ -45,8 +45,6 @@ PROJECT::PROJECT()
 
 void PROJECT::ElemsClear()
 {
-    DBG( printf( "%s: clearing all _ELEMS for project %s\n", __func__, TO_UTF8( GetProjectFullName() ) );)
-
     // careful here, this should work, but the virtual destructor may not
     // be in the same link image as PROJECT.
     for( unsigned i = 0;  i < DIM( m_elems );  ++i )
@@ -256,7 +254,7 @@ static bool copy_pro_file_template( const SEARCH_STACK& aSearchS, const wxString
         if( !templ.IsFileReadable() )
         {
             wxString msg = wxString::Format( _(
-                    "Unable to find '%s' template config file." ),
+                    "Unable to find \"%s\" template config file." ),
                     GetChars( templateFile ) );
 
             DisplayErrorMessage( nullptr, _( "Error copying project file template" ), msg );
@@ -279,7 +277,7 @@ static bool copy_pro_file_template( const SEARCH_STACK& aSearchS, const wxString
         success = wxCopyFile( kicad_pro_template, aDestination );
     else
     {
-        wxLogMessage( _( "Cannot create prj file '%s' (Directory not writable)" ),
+        wxLogMessage( _( "Cannot create prj file \"%s\" (Directory not writable)" ),
                       GetChars( aDestination) );
         success = false;
     }

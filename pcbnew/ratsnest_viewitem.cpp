@@ -57,6 +57,9 @@ const BOX2I RATSNEST_VIEWITEM::ViewBBox() const
 
 void RATSNEST_VIEWITEM::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
 {
+    if( !m_data->TryLock() )
+        return;
+
     constexpr int CROSS_SIZE = 200000;
 
     auto gal = aView->GetGAL();
@@ -68,7 +71,7 @@ void RATSNEST_VIEWITEM::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
 
     int highlightedNet = rs->GetHighlightNetCode();
 
-    gal->SetStrokeColor( color.Brightened(0.8) );
+    gal->SetStrokeColor( color.Brightened(0.5) );
 
     // Draw the "dynamic" ratsnest (i.e. for objects that may be currently being moved)
     for( const auto& l : m_data->GetDynamicRatsnest() )
@@ -92,6 +95,8 @@ void RATSNEST_VIEWITEM::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
         // Draw the "static" ratsnest
         if( i != highlightedNet )
             gal->SetStrokeColor( color );  // using the default ratsnest color for not highlighted
+        else
+            gal->SetStrokeColor( color.Brightened(0.8) );
 
         for( const auto& edge : net->GetUnconnected() )
         {
@@ -120,6 +125,8 @@ void RATSNEST_VIEWITEM::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
             }
         }
     }
+
+    m_data->Unlock();
 }
 
 

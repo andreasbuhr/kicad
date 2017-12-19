@@ -434,7 +434,7 @@ void TOOL_MANAGER::InitTools()
         if( !tool->Init() )
         {
             wxMessageBox(
-                    wxString::Format( "Initialization of tool '%s' failed", tool->GetName() ) );
+                    wxString::Format( "Initialization of tool \"%s\" failed", tool->GetName() ) );
 
             // Unregister the tool
             m_toolState.erase( tool );
@@ -739,8 +739,11 @@ bool TOOL_MANAGER::ProcessEvent( const TOOL_EVENT& aEvent )
     {
         auto f = dynamic_cast<EDA_DRAW_FRAME*>( GetEditFrame() );
 
-	if( f )
-	    f->GetGalCanvas()->Refresh();    // fixme: ugly hack, provide a method in TOOL_DISPATCHER.
+    if( f )
+        f->GetGalCanvas()->Refresh();    // fixme: ugly hack, provide a method in TOOL_DISPATCHER.
+#ifdef __WXMAC__
+        wxTheApp->ProcessPendingEvents(); // required for updating brightening behind a popup menu
+#endif
     }
 
     return hotkey_handled;

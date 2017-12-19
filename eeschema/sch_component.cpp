@@ -146,6 +146,9 @@ SCH_COMPONENT::SCH_COMPONENT( LIB_PART& aPart, SCH_SHEET_PATH* sheet, int unit,
     // Import user defined fields from the library component
     UpdateFields( true, true );
 
+    // Update the pin locations
+    UpdatePinCache();
+
     wxString msg = aPart.GetReferenceField().GetText();
 
     if( msg.IsEmpty() )
@@ -172,6 +175,7 @@ SCH_COMPONENT::SCH_COMPONENT( const SCH_COMPONENT& aComponent ) :
     m_convert   = aComponent.m_convert;
     m_lib_id    = aComponent.m_lib_id;
     m_part      = aComponent.m_part;
+    m_Pins      = aComponent.m_Pins;
 
     SetTimeStamp( aComponent.m_TimeStamp );
 
@@ -344,6 +348,14 @@ bool SCH_COMPONENT::Resolve( SYMBOL_LIB_TABLE& aLibTable, PART_LIB* aCacheLib )
 // sch component by lib_id
 static bool sort_by_libid( const SCH_COMPONENT* ref, SCH_COMPONENT* cmp )
 {
+    if( ref->GetLibId() == cmp->GetLibId() )
+    {
+        if( ref->GetUnit() == cmp->GetUnit() )
+            return ref->GetConvert() < cmp->GetConvert();
+
+        return ref->GetUnit() < cmp->GetUnit();
+    }
+
     return ref->GetLibId() < cmp->GetLibId();
 }
 
@@ -376,6 +388,7 @@ void SCH_COMPONENT::ResolveAll( const SCH_COLLECTOR& aComponents, PART_LIBS* aLi
         SCH_COMPONENT* cmp = cmp_list[ii];
         curr_libid = cmp->m_lib_id;
         cmp->Resolve( aLibs );
+        cmp->UpdatePinCache();
 
         // Propagate the m_part pointer to other members using the same lib_id
         for( unsigned jj = ii+1; jj < cmp_list.size (); ++jj )
@@ -386,6 +399,13 @@ void SCH_COMPONENT::ResolveAll( const SCH_COLLECTOR& aComponents, PART_LIBS* aLi
                 break;
 
             next_cmp->m_part = cmp->m_part;
+
+            if( ( cmp->m_unit == next_cmp->m_unit ) && ( cmp->m_convert == next_cmp->m_convert ) )
+                // Propagate the pin cache vector as well
+                next_cmp->m_Pins = cmp->m_Pins;
+            else
+                next_cmp->UpdatePinCache();
+
             ii = jj;
         }
     }
@@ -416,6 +436,7 @@ void SCH_COMPONENT::ResolveAll( const SCH_COLLECTOR& aComponents, SYMBOL_LIB_TAB
         SCH_COMPONENT* cmp = cmp_list[ii];
         curr_libid = cmp->m_lib_id;
         cmp->Resolve( aLibTable, aCacheLib );
+        cmp->UpdatePinCache();
 
         // Propagate the m_part pointer to other members using the same lib_id
         for( unsigned jj = ii+1; jj < cmp_list.size (); ++jj )
@@ -426,6 +447,81 @@ void SCH_COMPONENT::ResolveAll( const SCH_COLLECTOR& aComponents, SYMBOL_LIB_TAB
                 break;
 
             next_cmp->m_part = cmp->m_part;
+
+            if( ( cmp->m_unit == next_cmp->m_unit ) && ( cmp->m_convert == next_cmp->m_convert ) )
+                // Propagate the pin cache vector as well
+                next_cmp->m_Pins = cmp->m_Pins;
+            else
+                next_cmp->UpdatePinCache();
+
+            ii = jj;
+        }
+    }
+}
+
+
+void SCH_COMPONENT::UpdatePinCache()
+{
+    if( PART_SPTR part = m_part.lock() )
+    {
+        m_Pins.clear();
+        for( LIB_PIN* pin = part->GetNextPin();  pin;  pin = part->GetNextPin( pin ) )
+        {
+            wxASSERT( pin->Type() == LIB_PIN_T );
+
+            if( pin->GetUnit() && m_unit && ( m_unit != pin->GetUnit() ) )
+                continue;
+
+            if( pin->GetConvert() && m_convert && ( m_convert != pin->GetConvert() ) )
+                continue;
+
+            m_Pins.push_back( pin->GetPosition() );
+        }
+    }
+}
+
+
+void SCH_COMPONENT::UpdateAllPinCaches( const SCH_COLLECTOR& aComponents )
+{
+    // Usually, many components use the same part lib.
+    // to avoid too long calculation time the list of components is grouped
+    // and once the lib part is found for one member of a group, it is also
+    // set for all other members of this group
+    std::vector<SCH_COMPONENT*> cmp_list;
+
+    // build the cmp list.
+    for( int i = 0;  i < aComponents.GetCount();  ++i )
+    {
+        SCH_COMPONENT* cmp = dynamic_cast<SCH_COMPONENT*>( aComponents[i] );
+        wxASSERT( cmp );
+
+        if( cmp )   // cmp == NULL should not occur.
+            cmp_list.push_back( cmp );
+    }
+
+    // sort it by lib part. Cmp will be grouped by same lib part.
+    std::sort( cmp_list.begin(), cmp_list.end(), sort_by_libid );
+
+    LIB_ID curr_libid;
+
+    for( unsigned ii = 0; ii < cmp_list.size (); ++ii )
+    {
+        SCH_COMPONENT* cmp = cmp_list[ii];
+        curr_libid = cmp->m_lib_id;
+        cmp->UpdatePinCache();
+
+        // Propagate the m_Pins vector to other members using the same lib_id
+        for( unsigned jj = ii+1; jj < cmp_list.size (); ++jj )
+        {
+            SCH_COMPONENT* next_cmp = cmp_list[jj];
+
+            if( ( curr_libid != next_cmp->m_lib_id )
+                || ( cmp->m_unit != next_cmp->m_unit )
+                || ( cmp->m_convert != next_cmp->m_convert ) )
+                break;
+
+            // Propagate the pin cache vector as well
+            next_cmp->m_Pins = cmp->m_Pins;
             ii = jj;
         }
     }
@@ -1481,81 +1577,71 @@ void SCH_COMPONENT::GetEndPoints( std::vector <DANGLING_END_ITEM>& aItemList )
             if( pin->GetConvert() && m_convert && ( m_convert != pin->GetConvert() ) )
                 continue;
 
-            DANGLING_END_ITEM item( PIN_END, pin, GetPinPhysicalPosition( pin ) );
+            DANGLING_END_ITEM item( PIN_END, pin, GetPinPhysicalPosition( pin ), this );
             aItemList.push_back( item );
         }
     }
 }
 
 
-bool SCH_COMPONENT::IsPinDanglingStateChanged( std::vector<DANGLING_END_ITEM> &aItemList,
-        LIB_PINS& aLibPins, unsigned aPin )
-{
-    bool previousState;
-
-    if( aPin < m_isDangling.size() )
-    {
-        previousState = m_isDangling[aPin];
-        m_isDangling[aPin] = true;
-    }
-    else
-    {
-        previousState = true;
-        m_isDangling.push_back( true );
-    }
-
-    wxPoint pin_position = GetPinPhysicalPosition( aLibPins[aPin] );
-
-    for( DANGLING_END_ITEM& each_item : aItemList )
-    {
-        // Some people like to stack pins on top of each other in a symbol to indicate
-        // internal connection. While technically connected, it is not particularly useful
-        // to display them that way, so skip any pins that are in the same symbol as this
-        // one.
-        //
-        // Do not make this exception for hidden pins, because those actually make internal
-        // connections to a power net.
-        const LIB_PIN* item_pin = dynamic_cast<const LIB_PIN*>( each_item.GetItem() );
-
-        if( item_pin
-          && ( !item_pin->IsPowerConnection() || !IsInNetlist() )
-          && std::find( aLibPins.begin(), aLibPins.end(), item_pin) != aLibPins.end() )
-            continue;
-
-        switch( each_item.GetType() )
-        {
-        case PIN_END:
-        case LABEL_END:
-        case SHEET_LABEL_END:
-        case WIRE_START_END:
-        case WIRE_END_END:
-        case NO_CONNECT_END:
-        case JUNCTION_END:
-            if( pin_position == each_item.GetPosition() )
-                m_isDangling[aPin] = false;
-            break;
-        default:
-            break;
-        }
-        if( !m_isDangling[aPin] )
-            break;
-    }
-
-    return previousState != m_isDangling[aPin];
-}
-
-
 bool SCH_COMPONENT::IsDanglingStateChanged( std::vector<DANGLING_END_ITEM>& aItemList )
 {
     bool changed = false;
-    LIB_PINS libPins;
-    if( PART_SPTR part = m_part.lock() )
-        part->GetPins( libPins, m_unit, m_convert );
-    for( size_t i = 0; i < libPins.size(); ++i )
+
+    for( size_t i = 0; i < m_Pins.size(); ++i )
     {
-        if( IsPinDanglingStateChanged( aItemList, libPins, i ) )
-            changed = true;
+        bool previousState;
+        wxPoint pos = m_transform.TransformCoordinate( m_Pins[ i ] ) + m_Pos;
+
+        if( i < m_isDangling.size() )
+        {
+            previousState = m_isDangling[ i ];
+            m_isDangling[ i ] = true;
+        }
+        else
+        {
+            previousState = true;
+            m_isDangling.push_back( true );
+        }
+
+        for( DANGLING_END_ITEM& each_item : aItemList )
+        {
+            // Some people like to stack pins on top of each other in a symbol to indicate
+            // internal connection. While technically connected, it is not particularly useful
+            // to display them that way, so skip any pins that are in the same symbol as this
+            // one.
+            if( each_item.GetParent() == this )
+                continue;
+
+            switch( each_item.GetType() )
+            {
+            case PIN_END:
+            case LABEL_END:
+            case SHEET_LABEL_END:
+            case WIRE_START_END:
+            case WIRE_END_END:
+            case NO_CONNECT_END:
+            case JUNCTION_END:
+
+                if( pos == each_item.GetPosition() )
+                    m_isDangling[ i ] = false;
+
+                break;
+
+            default:
+                break;
+            }
+
+            if( !m_isDangling[ i ] )
+                break;
+        }
+
+        changed = ( changed || ( previousState != m_isDangling[ i ] ) );
     }
+
+    while( m_isDangling.size() > m_Pins.size() )
+        m_isDangling.pop_back();
+
     return changed;
 }
 
@@ -1597,30 +1683,8 @@ bool SCH_COMPONENT::IsSelectStateChanged( const wxRect& aRect )
 
 void SCH_COMPONENT::GetConnectionPoints( std::vector< wxPoint >& aPoints ) const
 {
-    if( PART_SPTR part = m_part.lock() )
-    {
-        for( LIB_PIN* pin = part->GetNextPin(); pin; pin = part->GetNextPin( pin ) )
-        {
-            wxCHECK_RET( pin->Type() == LIB_PIN_T,
-                         wxT( "GetNextPin() did not return a pin object.  Bad programmer!" ) );
-
-            // Skip items not used for this part.
-            if( m_unit && pin->GetUnit() && ( pin->GetUnit() != m_unit ) )
-                continue;
-
-            if( m_convert && pin->GetConvert() && ( pin->GetConvert() != m_convert ) )
-                continue;
-
-            // Calculate the pin position relative to the component position and orientation.
-            aPoints.push_back( m_transform.TransformCoordinate( pin->GetPosition() ) + m_Pos );
-        }
-    }
-    else
-    {
-        wxCHECK_RET( 0,
-                 wxT( "Cannot add connection points to list.  Cannot find component <" ) +
-                     GetLibId().GetLibItemName() + wxT( "> in any of the loaded libraries." ) );
-    }
+    for( auto pin : m_Pins )
+        aPoints.push_back( m_transform.TransformCoordinate( pin ) + m_Pos );
 }
 
 
@@ -1628,6 +1692,22 @@ LIB_ITEM* SCH_COMPONENT::GetDrawItem( const wxPoint& aPosition, KICAD_T aType )
 {
     if( PART_SPTR part = m_part.lock() )
     {
+
+        m_Pins.clear();
+
+        for( LIB_PIN* pin = part->GetNextPin();  pin;  pin = part->GetNextPin( pin ) )
+        {
+            wxASSERT( pin->Type() == LIB_PIN_T );
+
+            if( pin->GetUnit() && m_unit && ( m_unit != pin->GetUnit() ) )
+                continue;
+
+            if( pin->GetConvert() && m_convert && ( m_convert != pin->GetConvert() ) )
+                continue;
+
+            m_Pins.push_back( pin->GetPosition() );
+        }
+
         // Calculate the position relative to the component.
         wxPoint libPosition = aPosition - m_Pos;
 
@@ -1823,6 +1903,7 @@ SCH_ITEM& SCH_COMPONENT::operator=( const SCH_ITEM& aItem )
         m_unit      = c->m_unit;
         m_convert   = c->m_convert;
         m_transform = c->m_transform;
+        m_Pins      = c->m_Pins;
 
         m_PathsAndReferences = c->m_PathsAndReferences;
 
@@ -1869,17 +1950,8 @@ bool SCH_COMPONENT::HitTest( const EDA_RECT& aRect, bool aContained, int aAccura
 
 bool SCH_COMPONENT::doIsConnected( const wxPoint& aPosition ) const
 {
-    std::vector< wxPoint > pts;
-
-    GetConnectionPoints( pts );
-
-    for( size_t i = 0;  i < pts.size();  i++ )
-    {
-        if( pts[i] == aPosition )
-            return true;
-    }
-
-    return false;
+    wxPoint new_pos = m_transform.InverseTransform().TransformCoordinate( aPosition - m_Pos );
+    return std::find( m_Pins.begin(), m_Pins.end(), new_pos ) != m_Pins.end();
 }
 
 

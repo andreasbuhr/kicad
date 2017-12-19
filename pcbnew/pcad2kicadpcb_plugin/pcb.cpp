@@ -487,7 +487,7 @@ void PCB::MapLayer( XNODE* aNode )
     lName = lName.MakeUpper();
 
     if( lName == wxT( "TOP ASSY" ) )
-        KiCadLayer = Cmts_User;
+        KiCadLayer = F_Fab;
     else if( lName == wxT( "TOP SILK" ) )
         KiCadLayer = F_SilkS;
     else if( lName == wxT( "TOP PASTE" ) )
@@ -505,7 +505,7 @@ void PCB::MapLayer( XNODE* aNode )
     else if( lName == wxT( "BOT SILK" ) )
         KiCadLayer = B_SilkS;
     else if( lName == wxT( "BOT ASSY" ) )
-        KiCadLayer = Dwgs_User;
+        KiCadLayer = B_Fab;
     else if( lName == wxT( "BOARD" ) )
         KiCadLayer = Edge_Cuts;
     else
@@ -666,7 +666,7 @@ void PCB::GetBoardOutline( wxXmlDocument* aXmlDoc, wxString aActualConversion )
     }
 }
 
-void PCB::Parse( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActualConversion )
+void PCB::ParseBoard( wxStatusBar* aStatusBar, wxXmlDocument* aXmlDoc, wxString aActualConversion )
 {
     XNODE*          aNode;//, *aaNode;
     PCB_NET*        net;

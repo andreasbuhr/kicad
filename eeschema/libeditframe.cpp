@@ -527,8 +527,10 @@ void LIB_EDIT_FRAME::OnUpdatePartModified( wxUpdateUIEvent& aEvent )
     if( aEvent.GetId() == ID_LIBEDIT_SAVE_PART )
     {
         bool readOnly = libName.IsEmpty() || m_libMgr->IsLibraryReadOnly( libName );
+        wxString text = AddHotkeyName( readOnly ? _( "&Save Part [Read Only]" ) : _( "&Save Part" ),
+                g_Libedit_Hokeys_Descr, HK_SAVE_PART );
 
-        aEvent.SetText( readOnly ? _( "Save [Read Only]" ) : _( "Save" ) );
+        aEvent.SetText( text );
         aEvent.Enable( !readOnly && !partName.IsEmpty()
                 && m_libMgr->IsPartModified( partName, libName ) );
     }
@@ -578,7 +580,10 @@ void LIB_EDIT_FRAME::OnUpdateSaveLib( wxUpdateUIEvent& event )
     wxString lib = getTargetLib();
     bool readOnly = lib.IsEmpty() || m_libMgr->IsLibraryReadOnly( lib );
 
-    event.SetText( readOnly ? _( "Save library [Read Only]" ) : _( "Save library" ) );
+    wxString text = AddHotkeyName( readOnly ? _( "&Save Library [Read Only]" )
+            : _( "&Save Library" ) , g_Libedit_Hokeys_Descr, HK_SAVE_PART );
+
+    event.SetText( text );
     event.Enable( !readOnly && m_libMgr->IsLibraryModified( lib ) );
 }
 
@@ -602,7 +607,7 @@ void LIB_EDIT_FRAME::OnUpdateViewDoc( wxUpdateUIEvent& event )
         LIB_ALIAS* alias = part->GetAlias( m_aliasName );
 
         wxCHECK_RET( alias != NULL,
-                     wxString::Format( "Alias '%s' not found in symbol '%s'.",
+                     wxString::Format( "Alias \"%s\" not found in symbol \"%s\".",
                                        m_aliasName, part->GetName() ) );
 
         enable = !alias->GetDocFileName().IsEmpty();
@@ -1518,7 +1523,7 @@ bool LIB_EDIT_FRAME::addLibraryFile( bool aCreateNew )
     if( m_libMgr->LibraryExists( libName ) )
     {
         DisplayError( this,
-                wxString::Format( _( "Library '%s' already exists" ), GetChars( libName ) ) );
+                wxString::Format( _( "Library \"%s\" already exists" ), GetChars( libName ) ) );
         return false;
     }
 
@@ -1622,7 +1627,7 @@ void LIB_EDIT_FRAME::SyncLibraries( bool aProgress )
                 wxEmptyString, m_libMgr->GetAdapter()->GetLibrariesCount(), this );
 
         m_libMgr->Sync( true, [&]( int progress, int max, const wxString& libName ) {
-            progressDlg.Update( progress, wxString::Format( _( "Loading library '%s'" ), libName ) );
+            progressDlg.Update( progress, wxString::Format( _( "Loading library \"%s\"" ), libName ) );
         } );
     }
     else

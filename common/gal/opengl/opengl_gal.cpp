@@ -68,7 +68,7 @@ OPENGL_GAL::OPENGL_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions, wxWindow* aParent,
                         wxEvtHandler* aMouseListener, wxEvtHandler* aPaintListener,
                         const wxString& aName ) :
     GAL( aDisplayOptions ),
-    wxGLCanvas( aParent, wxID_ANY, (int*) glAttributes, wxDefaultPosition, wxDefaultSize,
+    HIDPI_GL_CANVAS( aParent, wxID_ANY, (int*) glAttributes, wxDefaultPosition, wxDefaultSize,
                 wxEXPAND, aName ),
     mouseListener( aMouseListener ), paintListener( aPaintListener ), currentManager( nullptr ),
     cachedManager( nullptr ), nonCachedManager( nullptr ), overlayManager( nullptr )
@@ -95,10 +95,6 @@ OPENGL_GAL::OPENGL_GAL( GAL_DISPLAY_OPTIONS& aDisplayOptions, wxWindow* aParent,
     isInitialized            = false;
     isGrouping               = false;
     groupCounter             = 0;
-
-#ifdef RETINA_OPENGL_PATCH
-    SetViewWantsBestResolution( true );
-#endif
 
     // Connecting the event handlers
     Connect( wxEVT_PAINT,           wxPaintEventHandler( OPENGL_GAL::onPaint ) );
@@ -789,7 +785,7 @@ void OPENGL_GAL::drawTriangulatedPolyset( const SHAPE_POLY_SET& aPolySet )
         {
             auto triPoly = aPolySet.TriangulatedPolygon( j );
 
-            for ( int i = 0; i < triPoly->m_triangleCount; i++ )
+            for ( int i = 0; i < triPoly->TriangleCount(); i++ )
             {
                 VECTOR2I a, b, c;
                 triPoly->GetTriangle( i ,a,b,c);
@@ -1168,13 +1164,8 @@ void OPENGL_GAL::ResizeScreen( int aWidth, int aHeight )
 {
     screenSize = VECTOR2I( aWidth, aHeight );
 
-#ifdef RETINA_OPENGL_PATCH
-    const float scaleFactor = GetBackingScaleFactor();
-#else
-    const float scaleFactor = 1.0f;
-#endif
-
     // Resize framebuffers
+    const float scaleFactor = GetBackingScaleFactor();
     compositor->Resize( aWidth * scaleFactor, aHeight * scaleFactor );
     isFramebufferInitialized = false;
 
@@ -1524,7 +1515,8 @@ void OPENGL_GAL::drawStrokedSemiCircle( const VECTOR2D& aCenterPoint, double aRa
 
 void OPENGL_GAL::drawPolygon( GLdouble* aPoints, int aPointCount )
 {
-    if(isFillEnabled){
+    if( isFillEnabled )
+    {
         currentManager->Shader( SHADER_NONE );
         currentManager->Color( fillColor.r, fillColor.g, fillColor.b, fillColor.a );
 
@@ -1550,8 +1542,10 @@ void OPENGL_GAL::drawPolygon( GLdouble* aPoints, int aPointCount )
     }
 
     if( isStrokeEnabled )
+    {
         drawPolyline( [&](int idx) { return VECTOR2D( aPoints[idx * 3], aPoints[idx * 3 + 1] ); },
                 aPointCount );
+    }
 }
 
 

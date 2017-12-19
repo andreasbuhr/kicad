@@ -138,12 +138,13 @@ void BOARD::BuildConnectivity()
 }
 
 
-const wxPoint& BOARD::GetPosition() const
+const wxPoint BOARD::GetPosition() const
 {
     wxLogWarning( wxT( "This should not be called on the BOARD object") );
 
     return ZeroOffset;
 }
+
 
 void BOARD::SetPosition( const wxPoint& aPos )
 {
@@ -1874,10 +1875,6 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
         chainMarkedSegments( aTrace->GetStart(), layer_set, &from_start );
         chainMarkedSegments( aTrace->GetEnd(),   layer_set, &from_end );
 
-        // DBG( dump_tracks( "first_clicked", trackList ); )
-        // DBG( dump_tracks( "from_start", from_start ); )
-        // DBG( dump_tracks( "from_end",   from_end ); )
-
         // combine into one trackList:
         trackList.insert( trackList.end(), from_start.begin(), from_start.end() );
         trackList.insert( trackList.end(), from_end.begin(),   from_end.end() );
@@ -1930,14 +1927,6 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
             {
                 // The via connects segments of another track: it is removed
                 // from list because it is member of another track
-
-                DBG(printf( "%s: omit track (%d, %d) (%d, %d) on layer:%d (!= our_layer:%d)\n",
-                    __func__,
-                    track->GetStart().x, track->GetStart().y,
-                    track->GetEnd().x, track->GetEnd().y,
-                    track->GetLayer(), layer
-                    ); )
-
                 via->SetState( BUSY, false );
                 break;
             }
@@ -2021,7 +2010,7 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
             }
             else    // Should not occur, at least for basic pads
             {
-                // wxLogMessage( "BOARD::MarkTrace: multiple pad_on_start" );
+                wxLogWarning( "Unexpected BOARD::MarkTrace: multiple pad_on_start" );
             }
         }
 
@@ -2042,7 +2031,7 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
             }
             else    // Should not occur, at least for basic pads
             {
-                // wxLogMessage( "BOARD::MarkTrace: multiple pad_on_end" );
+                wxLogWarning( "Unexpected BOARD::MarkTrace: multiple pad_on_end" );
             }
         }
     }
@@ -2083,8 +2072,6 @@ TRACK* BOARD::MarkTrace( TRACK*  aTrace, int* aCount,
                 track->SetState( BUSY, false );
             }
         }
-
-        DBG( printf( "%s: busy_count:%d\n", __func__, busy_count ); )
     }
 
     if( s_pad )
@@ -2740,7 +2727,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                 {
                     if( aReporter )
                     {
-                        msg.Printf( _( "Remove single pad net \"%s\" on \"%s\" pad '%s'\n" ),
+                        msg.Printf( _( "Remove single pad net \"%s\" on \"%s\" pad \"%s\"\n" ),
                                     GetChars( pad->GetNetname() ),
                                     GetChars( pad->GetParent()->GetReference() ),
                                     GetChars( pad->GetName() ) );
@@ -2784,7 +2771,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
                     continue;   // OK, pad found
 
                 // not found: bad footprint, report error
-                msg.Printf( _( "Component '%s' pad '%s' not found in footprint '%s'\n" ),
+                msg.Printf( _( "Component \"%s\" pad \"%s\" not found in footprint \"%s\"\n" ),
                             GetChars( component->GetReference() ),
                             GetChars( padname ),
                             GetChars( footprint->GetFPID().Format() ) );
@@ -2802,7 +2789,7 @@ void BOARD::ReplaceNetlist( NETLIST& aNetlist, bool aDeleteSinglePadNets,
 
             if( m_connectivity->GetPadCount( zone->GetNetCode() ) == 0 )
             {
-                msg.Printf( _( "Copper zone (net name '%s'): net has no pads connected." ),
+                msg.Printf( _( "Copper zone (net name \"%s\"): net has no pads connected." ),
                            GetChars( zone->GetNet()->GetNetname() ) );
                 aReporter->Report( msg, REPORTER::RPT_WARNING );
             }

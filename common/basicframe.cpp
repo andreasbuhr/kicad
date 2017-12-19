@@ -208,19 +208,6 @@ bool EDA_BASE_FRAME::ProcessEvent( wxEvent& aEvent )
 }
 
 
-bool EDA_BASE_FRAME::Enable( bool enable )
-{
-    // so we can do logging of this state change:
-
-#if defined(DEBUG)
-    const char* type_id = typeid( *this ).name();
-    printf( "wxFrame %-28s: %s\n", type_id, enable ? "enabled" : "disabled" );
-#endif
-
-    return wxFrame::Enable( enable );
-}
-
-
 void EDA_BASE_FRAME::SetAutoSaveInterval( int aInterval )
 {
     m_autoSaveInterval = aInterval;
@@ -439,7 +426,7 @@ wxString EDA_BASE_FRAME::GetFileFromHistory( int cmdId, const wxString& type,
         else
         {
             wxString msg = wxString::Format(
-                        wxT( "file '%s' was not found." ),
+                        _( "File \"%s\" was not found." ),
                         GetChars( fn ) );
 
             wxMessageBox( msg );
@@ -484,7 +471,7 @@ void EDA_BASE_FRAME::GetKicadHelp( wxCommandEvent& event )
         if( !helpFile )
         {
             wxString msg = wxString::Format( _(
-                "Html or pdf help file \n'%s'\n or\n'%s' could not be found." ), names[0], names[1] );
+                "Html or pdf help file \n\"%s\"\n or\n\"%s\" could not be found." ), names[0], names[1] );
             wxMessageBox( msg );
         }
         else
@@ -501,7 +488,7 @@ void EDA_BASE_FRAME::GetKicadHelp( wxCommandEvent& event )
     if( !helpFile )
     {
         wxString msg = wxString::Format( _(
-            "Help file '%s' could not be found." ),
+            "Help file \"%s\" could not be found." ),
             GetChars( base_name )
             );
         wxMessageBox( msg );
@@ -570,17 +557,17 @@ bool EDA_BASE_FRAME::IsWritable( const wxFileName& aFileName )
 
     if( fn.IsDir() && !fn.IsDirWritable() )
     {
-        msg.Printf( _( "You do not have write permissions to folder <%s>." ),
+        msg.Printf( _( "You do not have write permissions to folder \"%s\"." ),
                     GetChars( fn.GetPath() ) );
     }
     else if( !fn.FileExists() && !fn.IsDirWritable() )
     {
-        msg.Printf( _( "You do not have write permissions to save file <%s> to folder <%s>." ),
+        msg.Printf( _( "You do not have write permissions to save file \"%s\" to folder \"%s\"." ),
                     GetChars( fn.GetFullName() ), GetChars( fn.GetPath() ) );
     }
     else if( fn.FileExists() && !fn.IsFileWritable() )
     {
-        msg.Printf( _( "You do not have write permissions to save file <%s>." ),
+        msg.Printf( _( "You do not have write permissions to save file \"%s\"." ),
                     GetChars( fn.GetFullPath() ) );
     }
 
@@ -614,7 +601,7 @@ void EDA_BASE_FRAME::CheckForAutoSaveFile( const wxFileName& aFileName,
     wxString msg = wxString::Format( _(
             "Well this is potentially embarrassing!\n"
             "It appears that the last time you were editing the file\n"
-            "'%s'\n"
+            "\"%s\"\n"
             "it was not saved properly.  Do you wish to restore the last saved edits you made?" ),
             GetChars( aFileName.GetFullName() )
         );
@@ -640,7 +627,7 @@ void EDA_BASE_FRAME::CheckForAutoSaveFile( const wxFileName& aFileName,
             // Rename the old file to the backup file name.
             if( !wxRenameFile( aFileName.GetFullPath(), backupFileName.GetFullPath() ) )
             {
-                msg.Printf( _( "Could not create backup file <%s>" ),
+                msg.Printf( _( "Could not create backup file \"%s\"" ),
                             GetChars( backupFileName.GetFullPath() ) );
                 wxMessageBox( msg );
             }
