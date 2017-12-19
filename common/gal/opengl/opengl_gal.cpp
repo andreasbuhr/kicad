@@ -840,6 +840,19 @@ void OPENGL_GAL::DrawPolygon( const SHAPE_POLY_SET& aPolySet )
 
         drawPolygon( points.get(), pointCount );
     }
+
+    if( isStrokeEnabled )
+    {
+        for( int j = 0; j < aPolySet.OutlineCount(); ++j )
+        {
+            const auto& poly = aPolySet.Polygon( j );
+
+            for( const auto& lc : poly )
+            {
+                DrawPolyline( lc );
+            }
+        }
+    }
 }
 
 
