@@ -27,6 +27,9 @@
  * @brief Class that draws the triangle mesh used for SI simulation.
  */
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+
 #include <si_mesh_viewitem.h>
 #include <gal/graphics_abstraction_layer.h>
 #include <layers_id_colors_and_visibility.h>
@@ -39,10 +42,12 @@
 
 namespace KIGFX {
 
-SI_MESH_VIEWITEM::SI_MESH_VIEWITEM(std::shared_ptr<SI_SIMULATION> asiSimulation ) :
+SI_MESH_VIEWITEM::SI_MESH_VIEWITEM(std::shared_ptr<SI_SIMULATION> asiSimulation, KIGFX::VIEW* aView ) :
         EDA_ITEM( NOT_USED ),
-        m_siSimulation(asiSimulation)
+        m_siSimulation(asiSimulation),
+        m_View(aView)
 {
+    m_siSimulation->setViewItem(this);
 }
 
 
@@ -82,11 +87,25 @@ void SI_MESH_VIEWITEM::ViewDraw( int aLayer, KIGFX::VIEW* aView ) const
         }
     }
 
+    boost::property_tree::ptree pt;
+    boost::property_tree::ini_parser::read_ini("/home/andreasbuhr/kicad.ini", pt);
+
+
     gal->SetStrokeColor(COLOR4D(LIGHTGREEN));
     gal->SetLineWidth( 10000.0 );
-    for(auto& map : sim->m_polygons)
-        for(auto& poly : map)
-            gal->DrawPolygon(poly.second);
+    for(auto& map : sim->m_polygons){
+        for(auto& poly : map){
+            auto layername = LSET::Name(poly.first);
+            try{
+                typedef boost::property_tree::ptree::path_type path;
+                auto result = pt.get<std::string>(path(std::string("ShowLayers/") + layername, '/'));
+                gal->DrawPolygon(poly.second);
+            } catch (...){
+                // pass
+            }
+
+        }
+    }
 }
 
 
@@ -94,6 +113,11 @@ void SI_MESH_VIEWITEM::ViewGetLayers( int aLayers[], int& aCount ) const
 {
     aCount = 1;
     aLayers[0] = LAYER_SI_MESH;
+}
+
+void SI_MESH_VIEWITEM::redraw()
+{
+    m_View->Update(this);
 }
 
 }

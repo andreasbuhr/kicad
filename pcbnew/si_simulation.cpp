@@ -106,8 +106,6 @@ void SI_SIMULATION::BuildMesh()
     m_domain_polys.clear();
     m_polygons.clear();
     m_polygons.resize(m_numDomains);
-    m_polygons_for_meshing.clear();
-    m_polygons_for_meshing.resize(m_numDomains);
 
     // create bounding box and polygon for each domain:
     for( int domain = 0; domain < m_numDomains; ++domain )
@@ -148,11 +146,11 @@ void SI_SIMULATION::BuildMesh()
                     continue;
                 if(!bbox.Intersects(m_domain_boxes[domain]))
                     continue;
-                SHAPE_POLY_SET mysquare(m_domain_polys[domain]);
-                mysquare.BooleanIntersection(single_pset, SHAPE_POLY_SET::PM_FAST);
-                if(!(mysquare.BBox().GetArea()>0))
+                SHAPE_POLY_SET mypart(m_domain_polys[domain]);
+                mypart.BooleanIntersection(single_pset, SHAPE_POLY_SET::PM_FAST);
+                if(!(mypart.BBox().GetArea()>0))
                     continue;
-                m_polygons[domain][id].Append(mysquare);
+                m_polygons[domain][id].Append(mypart);
             }
         }
     }
@@ -181,15 +179,16 @@ void SI_SIMULATION::BuildMesh()
     std::ofstream debugout("/home/andreasbuhr/kicad.time", std::ios_base::app);
     debugout << "calculation took " << elapsed_ns / 1000000 << " ms" << std::endl;
 
-
+/*
     for( int domain = 0; domain < m_numDomains; ++domain ){
         SHAPE_POLY_SET formeshing(m_domain_polys[domain]);
         for (PCB_LAYER_ID id : m_layers){
             formeshing.Append(m_polygons[domain][id]);
         }
-        //formeshing.BooleanAdd(SHAPE_POLY_SET{}, SHAPE_POLY_SET::PM_FAST, true);
         GenerateTriangleMesh(formeshing, domain);
     }
+    */
+    m_viewItem->redraw();
 }
 
 bool myoperatorless(const VECTOR2I& a, const VECTOR2I& b){
@@ -202,8 +201,31 @@ bool myoperatorequal(const VECTOR2I& a, const VECTOR2I& b){
     return a.x == b.x && a.y == b.y;
 }
 
+void addSegment(const std::vector<VECTOR2I>& allpoints, const SEG& segment, std::vector<std::pair<int, int>>& segments){
+    for(const auto& point : allpoints){
+        if(segment.Distance(point) < segment.Length() / 1000
+                && segment.A != point
+                && segment.B != point){
+            SEG seg1(segment.A, point);
+            SEG seg2(point, segment.B);
+            if(seg1.Length() > segment.Length()/10
+                    && seg2.Length() > segment.Length()/10){
+                addSegment(allpoints, seg1, segments);
+                addSegment(allpoints, seg2, segments);
+                return;
+            }
+        }
+    }
+    int first_index = std::lower_bound( allpoints.begin(),
+                                        allpoints.end(), segment.A, myoperatorless ) - allpoints.begin();
+    int second_index = std::lower_bound( allpoints.begin(),
+                                        allpoints.end(), segment.B, myoperatorless ) - allpoints.begin();
+    segments.push_back(std::make_pair(first_index, second_index));
+}
+
 void SI_SIMULATION::GenerateTriangleMesh(const SHAPE_POLY_SET &aPolygon, int name)
 {
+    std::cout << "Generating triangle poly file for domain " << name << std::endl;
     if(aPolygon.OutlineCount() < 1) return;
 
     SHAPE_POLY_SET myPolygon(aPolygon);
@@ -220,11 +242,7 @@ void SI_SIMULATION::GenerateTriangleMesh(const SHAPE_POLY_SET &aPolygon, int nam
     std::vector<std::pair<int, int>> segments;
     for( auto iterator = myPolygon.CIterateSegmentsWithHoles(); iterator; iterator++){
         const SEG& segment = *iterator;
-        int first_index = std::lower_bound( allpoints.begin(),
-                                            allpoints.end(), segment.A, myoperatorless ) - allpoints.begin();
-        int second_index = std::lower_bound( allpoints.begin(),
-                                            allpoints.end(), segment.B, myoperatorless ) - allpoints.begin();
-        segments.push_back(std::make_pair(first_index, second_index));
+        addSegment(allpoints, segment, segments);
     }
 
     std::ofstream triout("/home/andreasbuhr/foo/kicad" + boost::lexical_cast<std::string>(name) + ".poly");
@@ -277,4 +295,9 @@ int SI_SIMULATION::getMin_number_of_domains() const
 void SI_SIMULATION::setMin_number_of_domains(int min_number_of_domains)
 {
     m_min_number_of_domains = min_number_of_domains;
+}
+
+void SI_SIMULATION::setViewItem(KIGFX::SI_MESH_VIEWITEM *aViewItem)
+{
+    m_viewItem = aViewItem;
 }

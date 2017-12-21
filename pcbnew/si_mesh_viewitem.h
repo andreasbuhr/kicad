@@ -41,7 +41,7 @@ namespace KIGFX
 class SI_MESH_VIEWITEM : public EDA_ITEM
 {
 public:
-    SI_MESH_VIEWITEM( std::shared_ptr<SI_SIMULATION> asiSimulation );
+    SI_MESH_VIEWITEM( std::shared_ptr<SI_SIMULATION> asiSimulation, KIGFX::VIEW* aView );
 
     /// @copydoc VIEW_ITEM::ViewBBox()
     const BOX2I ViewBBox() const override;
@@ -51,6 +51,8 @@ public:
 
     /// @copydoc VIEW_ITEM::ViewGetLayers()
     void ViewGetLayers( int aLayers[], int& aCount ) const override;
+
+    void redraw(void);
 
 #if defined(DEBUG)
     /// @copydoc EDA_ITEM::Show()
@@ -68,6 +70,7 @@ public:
     }
 private:
     std::shared_ptr<SI_SIMULATION> m_siSimulation;
+    KIGFX::VIEW* m_View;
 };
 
 

@@ -63,8 +63,12 @@ public:
     int getMin_number_of_domains() const;
     void setMin_number_of_domains(int min_number_of_domains);
 
+    void setViewItem(KIGFX::SI_MESH_VIEWITEM* aViewItem);
+
 private:
     BOARD *m_board;
+    KIGFX::SI_MESH_VIEWITEM* m_viewItem;
+
     int m_min_number_of_domains;
     double m_maxFreq;
     double m_domainSize;
